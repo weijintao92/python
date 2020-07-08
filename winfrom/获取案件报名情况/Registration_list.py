@@ -27,6 +27,21 @@ Label_cbr.grid(row=0,column=3)
 Entry_cbr = tk.Entry(window, show=None, font=('Arial', 14),bd='5')  
 Entry_cbr.grid(row=0,column=4)
 
+# 搜索按钮
+
+
+
+# 第5步，在窗口界面设置放置Button按键
+b = tk.Button(window, text='hit me', font=('Arial', 12))
+b.grid(row=1,column=2)
+
+def myPrint(self):
+    print('ddddd')
+    print(Entry_cbr.get())
+
+b.bind("<Button-1>",myPrint)
+
+
 #查询结果
 
  

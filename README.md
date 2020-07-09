@@ -6,7 +6,7 @@ git init
 # 将项目的所有文件添加到仓库中
 git add .
 # 将add的文件commit到仓库
-git commit -m "7-9"
+git commit -m "list"
 # 上传代码到github远程仓库
 git push -u origin master
 

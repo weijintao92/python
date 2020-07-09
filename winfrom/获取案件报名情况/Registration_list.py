@@ -27,44 +27,60 @@ Entry_hs.grid(row=0,column=1)
 Label_cbr = tk.Label(window, text='承办人：', font=('Arial', 12))
 Label_cbr.grid(row=0,column=3)
 Entry_cbr = tk.Entry(window, show=None, font=('Arial', 14),bd='5')  
-Entry_cbr.grid(row=0,column=4)
+Entry_cbr.grid(row=0,column=0,columnspan= 4)
 
-# 搜索按钮
-b = tk.Button(window, text='hit me', font=('Arial', 12))
-b.grid(row=1,column=2)
+
+
+#列表
+lb=tk.Listbox(window,selectmode=tk.SINGLE,width='100')
+lb.grid(row=2,column=0)
 
 def myPrint(self):
+    print(lb.curselection())#提取点中选项的下标
+     # 创建数据库链接
+    connect = pymssql.connect('2.zhuamm.com', 'sa', 'psy@2020', 'court_juror', charset='cp936')  #服务器名,账户,密码,数据库名
+    if connect:
+        print("连接成功!")
+    cursor = connect.cursor()   #创建一个游标对象,python里的sql语句都要通过cursor来执行
+    cursor.execute(''.encode('cp936'))   #执行sql语句
+    # print(cursor.fetchall())
+    for item in iter(cursor.fetchall()):
+        lb.insert(item[0], item[1])
+    # 关闭链接
+    cursor.close()   
+    connect.close()  
+lb.bind("<Double-Button-1>",myPrint)
+
+
+
+def my_search():
     if(Entry_cbr.get() == '' and  Entry_hs.get()== ""):
         tk.messagebox.showinfo('提示','请输入案件标号或承办人！')
     if(Entry_cbr.get() != '' and  Entry_hs.get()!= ""):
-        sql = "select * from tasks where TaskName = '"+Entry_hs.get()+"' or Faguan like '%"+Entry_cbr.get()+"%'"
+        my_sql = "select a.id,CAST(b.nh as varchar)+CAST(b.fyjc as varchar)+CAST(b.az as varchar)+CAST(b.hs as varchar)+CAST(b.dsr as varchar) as my_ah from tasks as a left join transfer.dbo.g_ajz as b on a.anjian_id = b.number where a.TaskName = '"+Entry_hs.get()+"' or a.Faguan like '%"+Entry_cbr.get()+"%'"
     if(Entry_cbr.get() == '' and  Entry_hs.get()!= ""):
-        sql = "select * from tasks where TaskName = '"+Entry_hs.get()+"'"
+        my_sql = "select a.id,CAST(b.nh as varchar)+CAST(b.fyjc as varchar)+CAST(b.az as varchar)+CAST(b.hs as varchar)+CAST(b.dsr as varchar) as my_ah from tasks as a left join transfer.dbo.g_ajz as b on a.anjian_id = b.number where a.TaskName = '"+Entry_hs.get()+"'"
     if(Entry_cbr.get() != '' and  Entry_hs.get()== ""):
-        sql = "select * from tasks where Faguan like '%"+Entry_cbr.get()+"%'"
-    print(sql)
-    print(Entry_cbr.get())
-
-b.bind("<Button-1>",myPrint)
-
-# def my_pymssql(my_an,my_cbr):
-#     connect = pymssql.connect('2.zhuamm.com', 'sa', 'psy@2020', 'court_juror')  #服务器名,账户,密码,数据库名
-#     if connect:
-#         print("连接成功!")
-        
-#     cursor = connect.cursor()   #创建一个游标对象,python里的sql语句都要通过cursor来执行
-#     sql = "select * from tasks where TaskName = '"+Entry_hs+"' or Faguan like '%"+Entry_cbr+"%'"
-#     print(sql)
-#     cursor.execute(sql)   #执行sql语句
-#     print(cursor.fetchall())
-#     connect.commit()  #提交
-#     cursor.close()   
-#     connect.close()  
+        my_sql = "select a.id,CAST(b.nh as varchar)+CAST(b.fyjc as varchar)+CAST(b.az as varchar)+CAST(b.hs as varchar)+CAST(b.dsr as varchar) as my_ah from tasks as a left join transfer.dbo.g_ajz as b on a.anjian_id = b.number where a.Faguan like '%"+Entry_cbr.get()+"%'"
+    print(my_sql)
+    # 创建数据库链接
+    connect = pymssql.connect('2.zhuamm.com', 'sa', 'psy@2020', 'court_juror', charset='cp936')  #服务器名,账户,密码,数据库名
+    if connect:
+        print("连接成功!")
+    cursor = connect.cursor()   #创建一个游标对象,python里的sql语句都要通过cursor来执行
+    cursor.execute(my_sql.encode('cp936'))   #执行sql语句
+    # print(cursor.fetchall())
+    for item in iter(cursor.fetchall()):
+        lb.insert(item[0], item[1])
+    # 关闭链接
+    cursor.close()   
+    connect.close()  
 
 
+# 搜索按钮
+b = tk.Button(window, text='搜索', font=('Arial', 12),command = my_search)
+b.grid(row=1,column=2)
 
-
-#查询结果
 
  
 # 第5步，主窗口循环显示

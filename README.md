@@ -1,4 +1,5 @@
 # python_ReptilesJavBaidu
+# GitHub地址：https://github.com/weijintao92/python_ReptilesJavBaidu.git
 
 # 初始化 
 git init

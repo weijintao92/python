@@ -7,6 +7,7 @@
  
  
 import tkinter as tk  # 使用Tkinter前需要先导入
+import tkinter.messagebox
 import pymssql      #引入sqlserver
  
 # 第1步，实例化object，建立窗口window
@@ -33,10 +34,32 @@ b = tk.Button(window, text='hit me', font=('Arial', 12))
 b.grid(row=1,column=2)
 
 def myPrint(self):
-    print('ddddd')
+    if(Entry_cbr.get() == '' and  Entry_hs.get()== ""):
+        tk.messagebox.showinfo('提示','请输入案件标号或承办人！')
+    if(Entry_cbr.get() != '' and  Entry_hs.get()!= ""):
+        sql = "select * from tasks where TaskName = '"+Entry_hs.get()+"' or Faguan like '%"+Entry_cbr.get()+"%'"
+    if(Entry_cbr.get() == '' and  Entry_hs.get()!= ""):
+        sql = "select * from tasks where TaskName = '"+Entry_hs.get()+"'"
+    if(Entry_cbr.get() != '' and  Entry_hs.get()== ""):
+        sql = "select * from tasks where Faguan like '%"+Entry_cbr.get()+"%'"
+    print(sql)
     print(Entry_cbr.get())
 
 b.bind("<Button-1>",myPrint)
+
+# def my_pymssql(my_an,my_cbr):
+#     connect = pymssql.connect('2.zhuamm.com', 'sa', 'psy@2020', 'court_juror')  #服务器名,账户,密码,数据库名
+#     if connect:
+#         print("连接成功!")
+        
+#     cursor = connect.cursor()   #创建一个游标对象,python里的sql语句都要通过cursor来执行
+#     sql = "select * from tasks where TaskName = '"+Entry_hs+"' or Faguan like '%"+Entry_cbr+"%'"
+#     print(sql)
+#     cursor.execute(sql)   #执行sql语句
+#     print(cursor.fetchall())
+#     connect.commit()  #提交
+#     cursor.close()   
+#     connect.close()  
 
 
 

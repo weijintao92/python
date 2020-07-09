@@ -29,6 +29,9 @@ Label_cbr.pack()
 Entry_cbr = tk.Entry(window, show=None, font=('Arial', 14),bd='5')  
 Entry_cbr.pack()
 
+#列表
+lb=tk.Listbox(window,selectmode=tk.SINGLE,width=50)
+lb.pack()
 #搜索
 def my_search():
     if(Entry_cbr.get() == '' and  Entry_hs.get()== ""):
@@ -47,6 +50,9 @@ def my_search():
     cursor = connect.cursor()   #创建一个游标对象,python里的sql语句都要通过cursor来执行
     cursor.execute(my_sql.encode('cp936'))   #执行sql语句
     # print(cursor.fetchall())
+    # 删除所有元素
+    if lb.size() > 0 :
+        lb.delete(0,lb.size())
     for item in iter(cursor.fetchall()):
         lb.insert(item[0], item[1])
     # 关闭链接
@@ -60,18 +66,16 @@ b.pack()
 
 
 
-#列表
-lb=tk.Listbox(window,selectmode=tk.SINGLE)
-lb.pack()
+
 
 def myPrint(self):
-    print(type(lb.curselection()))#提取点中选项的下标
+    print(lb.curselection())#提取点中选项的下标
      # 创建数据库链接
     connect = pymssql.connect('2.zhuamm.com', 'sa', 'psy@2020', 'court_juror', charset='cp936')  #服务器名,账户,密码,数据库名
     if connect:
         print("连接成功!")
     cursor = connect.cursor()   #创建一个游标对象,python里的sql语句都要通过cursor来执行
-    sql = "select a.Cell,COUNT(*) from Task_SMS_Rcv as a left join tasks as b on b.memo like '%'+ a.cell+'%' where a.extraID = '"+str(lb.curselection()[0])+"' group by a.Cell"
+    sql = "select a.Cell,COUNT(*) from Task_SMS_Rcv as a left join tasks as b on b.memo like '%'+ a.cell+'%' where a.extraID = '"+str(lb.get(lb.curselection())[0])+"' group by a.Cell"
     print(sql)
     cursor.execute(sql.encode('cp936'))   #执行sql语句
     print(cursor.fetchall())

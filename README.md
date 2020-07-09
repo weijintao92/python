@@ -11,3 +11,6 @@ git push -u origin master
 
 git config --global user.email "1109765190@qq.com"
 
+
+# 安装   pip install pymssql
+

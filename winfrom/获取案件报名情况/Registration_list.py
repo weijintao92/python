@@ -8,6 +8,7 @@
 
 import tkinter as tk  # 使用Tkinter前需要先导入
 import tkinter.messagebox
+from tkinter import *
 import pymssql  # 引入sqlserver
 import calendar
 import datetime
@@ -42,7 +43,7 @@ def my_search():
         tk.messagebox.showinfo('提示', '请输入案件标号或承办人！')
     if(Entry_cbr.get() != '' and Entry_hs.get() != ""):
         my_sql = "select a.id,CAST(b.nh as varchar)+CAST(b.fyjc as varchar)+CAST(b.az as varchar)+CAST(b.hs as varchar)+CAST(b.dsr as varchar) as my_ah from tasks as a left join transfer.dbo.g_ajz as b on a.anjian_id = b.number where a.TaskName = '" + \
-            Entry_hs.get()+"' and a.Faguan like '%"+Entry_cbr.get()+"%'"
+            Entry_hs.get()+"' and  a.Faguan like '%"+Entry_cbr.get()+"%'"
     if(Entry_cbr.get() == '' and Entry_hs.get() != ""):
         my_sql = "select a.id,CAST(b.nh as varchar)+CAST(b.fyjc as varchar)+CAST(b.az as varchar)+CAST(b.hs as varchar)+CAST(b.dsr as varchar) as my_ah from tasks as a left join transfer.dbo.g_ajz as b on a.anjian_id = b.number where a.TaskName = '"+Entry_hs.get()+"'"
     if(Entry_cbr.get() != '' and Entry_hs.get() == ""):
@@ -97,8 +98,11 @@ def myPrint(self):
 
 
 # 列表
-lb = tk.Listbox(window, selectmode=tk.SINGLE, width=50)
+scroll = tkinter.Scrollbar()
+scroll.pack(side=RIGHT,fill=Y)
+lb = tk.Listbox(window, selectmode=tk.SINGLE, width=50,yscrollcommand=scroll.set)
 lb.pack()
+scroll.config(command=lb.yview)
 lb.bind("<Double-Button-1>", myPrint)
 
 

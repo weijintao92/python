@@ -36,6 +36,8 @@ Entry_cbr.pack()
 
 
 def my_search():
+    # 删除listbox和text里的内容
+    lb.delete(0, lb.size())
     if(Entry_cbr.get() == '' and Entry_hs.get() == ""):
         tk.messagebox.showinfo('提示', '请输入案件标号或承办人！')
     if(Entry_cbr.get() != '' and Entry_hs.get() != ""):
@@ -54,9 +56,7 @@ def my_search():
     cursor = connect.cursor()  # 创建一个游标对象,python里的sql语句都要通过cursor来执行
     cursor.execute(my_sql)  # 执行sql语句
     # print(cursor.fetchall())
-    # 删除所有元素
-    # if lb.size() > 0 :
-    lb.delete(0, lb.size())
+
     for item in iter(cursor.fetchall()):
         lb.insert(item[0], item[1].encode('latin1').decode('gbk')+','+str(item[0]))
         # print(item[1].encode('latin1').decode('gbk'))
@@ -72,7 +72,8 @@ b.pack()
 
 def myPrint(self):
     # print(lb.curselection()) 
-
+    my_text.delete("1.0",tk.END)
+    # my_text.delete(0, 'end')
     connect = pymssql.connect('2.zhuamm.com', 'sa', 'psy@2020','court_juror', charset='utf8') 
     if connect:
         print("连接成功!")
@@ -100,8 +101,19 @@ lb = tk.Listbox(window, selectmode=tk.SINGLE, width=50)
 lb.pack()
 lb.bind("<Double-Button-1>", myPrint)
 
+
+
 # 输出内容
-my_text = tk.Text(window, width=50)
+# 创建滚动条
+scroll = tkinter.Scrollbar()
+# 创建文本框text，设置宽度100，high不是高度，是文本显示的行数设置为3行
+my_text = tkinter.Text(window, width=50)
+# 将滚动条填充
+scroll.pack(side=tkinter.RIGHT,fill=tkinter.Y) # side是滚动条放置的位置，上下左右。fill是将滚动条沿着y轴填充
+my_text.pack(side=tkinter.LEFT,fill=tkinter.Y) # 将文本框填充进wuya窗口的左侧，
+# 将滚动条与文本框关联
+scroll.config(command=my_text.yview) # 将文本框关联到滚动条上，滚动条滑动，文本框跟随滑动
+my_text.config(yscrollcommand=scroll.set) # 将滚动条关联到文本框
 my_text.pack()
 
 

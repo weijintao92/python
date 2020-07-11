@@ -39,15 +39,16 @@ Entry_cbr.pack()
 def my_search():
     # 删除listbox和text里的内容
     lb.delete(0, lb.size())
+    now = datetime.datetime.now().date()
     if(Entry_cbr.get() == '' and Entry_hs.get() == ""):
         tk.messagebox.showinfo('提示', '请输入案件标号或承办人！')
     if(Entry_cbr.get() != '' and Entry_hs.get() != ""):
         my_sql = "select a.id,CAST(b.nh as varchar)+CAST(b.fyjc as varchar)+CAST(b.az as varchar)+CAST(b.hs as varchar)+CAST(b.dsr as varchar) as my_ah from tasks as a left join transfer.dbo.g_ajz as b on a.anjian_id = b.number where a.TaskName = '" + \
-            Entry_hs.get()+"' and  a.Faguan like '%"+Entry_cbr.get()+"%'"
+            Entry_hs.get()+"' and a.StartDate > '"+ str(datetime.datetime(now.year, 1, 1)) +"' and  a.Faguan like '%"+Entry_cbr.get()+"%' order by a.StartDate desc"
     if(Entry_cbr.get() == '' and Entry_hs.get() != ""):
-        my_sql = "select a.id,CAST(b.nh as varchar)+CAST(b.fyjc as varchar)+CAST(b.az as varchar)+CAST(b.hs as varchar)+CAST(b.dsr as varchar) as my_ah from tasks as a left join transfer.dbo.g_ajz as b on a.anjian_id = b.number where a.TaskName = '"+Entry_hs.get()+"'"
+        my_sql = "select a.id,CAST(b.nh as varchar)+CAST(b.fyjc as varchar)+CAST(b.az as varchar)+CAST(b.hs as varchar)+CAST(b.dsr as varchar) as my_ah from tasks as a left join transfer.dbo.g_ajz as b on a.anjian_id = b.number where  a.StartDate > '"+ str(datetime.datetime(now.year, 1, 1)) +"' and a.TaskName = '"+Entry_hs.get()+"' order by a.StartDate desc"
     if(Entry_cbr.get() != '' and Entry_hs.get() == ""):
-        my_sql = "select a.id,CAST(b.nh as varchar)+CAST(b.fyjc as varchar)+CAST(b.az as varchar)+CAST(b.hs as varchar)+CAST(b.dsr as varchar) as my_ah from tasks as a left join transfer.dbo.g_ajz as b on a.anjian_id = b.number where a.Faguan like '%"+Entry_cbr.get()+"%'"
+        my_sql = "select a.id,CAST(b.nh as varchar)+CAST(b.fyjc as varchar)+CAST(b.az as varchar)+CAST(b.hs as varchar)+CAST(b.dsr as varchar) as my_ah from tasks as a left join transfer.dbo.g_ajz as b on a.anjian_id = b.number where a.StartDate > '"+ str(datetime.datetime(now.year, 1, 1)) +"' and a.Faguan like '%"+Entry_cbr.get()+"%' order by a.StartDate desc"
     print(my_sql)
     # 创建数据库链接
     connect = pymssql.connect('2.zhuamm.com', 'sa', 'psy@2020',
@@ -81,8 +82,8 @@ def myPrint(self):
     cursor = connect.cursor() 
     my_id = lb.get(lb.curselection()).split(",")[1]
     print(my_id)
-    now = datetime.datetime.now()
-    print(datetime.datetime(now.year, 1, 1))
+    now = datetime.datetime.now().date()
+    # print(datetime.datetime(now.year, 1, 1))
     sql_2 = "select c.Name,Cell,COUNT(*) from Task_SMS_Rcv as a left join tasks as b on b.memo like '%'+ a.cell+'%' left join juror_info as c on a.Cell = c.CellPhone where a.extraID = '" + \
         str(my_id)+"' and b.StartDate>'"+ str(datetime.datetime(now.year, 1, 1))+"' group by a.Cell,c.name order by COUNT(*)"
     print(sql_2)
@@ -114,7 +115,7 @@ scroll = tkinter.Scrollbar()
 my_text = tkinter.Text(window, width=50)
 # 将滚动条填充
 scroll.pack(side=tkinter.RIGHT,fill=tkinter.Y) # side是滚动条放置的位置，上下左右。fill是将滚动条沿着y轴填充
-my_text.pack(side=tkinter.LEFT,fill=tkinter.Y) # 将文本框填充进wuya窗口的左侧，
+# my_text.pack(side=tkinter.LEFT,fill=tkinter.Y) # 将文本框填充进wuya窗口的左侧，
 # 将滚动条与文本框关联
 scroll.config(command=my_text.yview) # 将文本框关联到滚动条上，滚动条滑动，文本框跟随滑动
 my_text.config(yscrollcommand=scroll.set) # 将滚动条关联到文本框

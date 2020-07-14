@@ -33,12 +33,15 @@ import json
 #         fd.write(chunk)
 
 
-my_file = open(r"D:\my_py\baidu.html", 'rb')
+my_file = open(r".\baidu.html", 'rb')
 my_html = my_file.read()
 my_soup = BeautifulSoup(my_html, "html.parser")
 # for item in my_soup.find_all('div',class_="c-tools"):   #查找符合要求的内容
-#     data2 = json.loads(item.get('data-tools'))
-#     print ( data2['title'],data2['url'])
+#     print(item)
+#     # print(item.get('data-tools'))
+#     # data2 = json.loads(item.get('data-tools'))
+#     # print ( data2['title'],data2['url'])
 
 for item in my_soup.find_all('div',class_="page-inner"):
-    print(item.find_all('a'))
+    for item2 in item.find_all('a'):
+        print('https://www.baidu.com'+item2.get('href'))

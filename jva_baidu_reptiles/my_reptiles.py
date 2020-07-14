@@ -44,4 +44,5 @@ my_soup = BeautifulSoup(my_html, "html.parser")
 
 for item in my_soup.find_all('div',class_="page-inner"):
     for item2 in item.find_all('a'):
+        print(item2.get_text())
         print('https://www.baidu.com'+item2.get('href'))

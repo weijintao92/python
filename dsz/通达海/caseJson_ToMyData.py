@@ -30,17 +30,18 @@ b.pack()
 
 def my_start():
     # 创建数据库链接
-    con = pymssql.connect('2.zhuamm.com', 'sa', 'psy@2020',
+    con = pymssql.connect('www.haoban.org:4440', 'sa', 'psy@2020',
                             'court_juror', charset='utf8')  # 服务器名,账户,密码,数据库名
     if con:
         print("连接成功!")
     cursor = con.cursor()  # 创建一个游标对象,python里的sql语句都要通过cursor来执行
     try:
-        
+        cursor.execute('delete my_transfer.dbo.g_dsz')
+        con.commit()
         # 读取json文件内容,返回字典格式
         with open(file_path, 'r', encoding="utf-8")as fp:
             json_data = json.load(fp)
-            # print(json_data)
+            print(json_data)
             for item in json_data:
                 #案号
                 hs = item['AH'].replace(item['AH'][0:11],'').replace(item['DZ'],'').replace('号','')
@@ -52,6 +53,7 @@ def my_start():
 
                 cursor.execute(my_sql)  # 执行sql语句
                 print(cursor.rowcount, "记录插入成功。")
+        cursor.execute(f"exec transfer.dbo.insert_my_anjian_tb")
         con.commit()
     except UnicodeDecodeError:
         tk.messagebox.showwarning("警告", "文本编码格式需为utf-8")

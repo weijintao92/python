@@ -51,7 +51,7 @@ def my_search():
         my_sql = "select a.id,CAST(b.nh as varchar)+CAST(b.fyjc as varchar)+CAST(b.az as varchar)+CAST(b.hs as varchar)+CAST(b.dsr as varchar) as my_ah from tasks as a left join transfer.dbo.g_ajz as b on a.anjian_id = b.number where a.StartDate > '"+ str(datetime.datetime(now.year, 1, 1)) +"' and a.Faguan like '%"+Entry_cbr.get()+"%' order by a.StartDate desc"
     print(my_sql)
     # 创建数据库链接
-    connect = pymssql.connect('2.zhuamm.com', 'sa', 'psy@2020',
+    connect = pymssql.connect('www.haoban.org:4440', 'sa', 'psy@2020',
                               'court_juror', charset='utf8')  # 服务器名,账户,密码,数据库名
     if connect:
         print("连接成功!")
@@ -76,7 +76,7 @@ def myPrint(self):
     # print(lb.curselection()) 
     my_text.delete("1.0",tk.END)
     # my_text.delete(0, 'end')
-    connect = pymssql.connect('2.zhuamm.com', 'sa', 'psy@2020','court_juror', charset='utf8') 
+    connect = pymssql.connect('www.haoban.org:4440', 'sa', 'psy@2020','court_juror', charset='utf8') 
     if connect:
         print("连接成功!")
     cursor = connect.cursor() 

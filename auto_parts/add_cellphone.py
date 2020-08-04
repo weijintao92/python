@@ -1,70 +1,75 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
-# 外地法院
-from tkinter import ttk
-import json
+# coding=utf-8
 import tkinter as tk
 from tkinter import filedialog
 import tkinter.messagebox
-import time
+import xlrd
 import pymysql
+
 # 第1步，实例化object，建立窗口window
 window = tk.Tk()
 # 第2步，给窗口的可视化起名字
-window.title('增加电话并去除重复的')
+window.title('将电话导入数据中心，并剔除重复')
 # 第3步，设定窗口的大小(长 * 宽)
 window.geometry('500x300')  # 这里的乘是小x
-# 窗体加载时运行
-# root.withdraw()
+
+
 file_path = ""
 
-
-# 调用文件对话框获取文件路径
+# 选择数据源按钮
 def my_checkFile():
     global file_path
     file_path = filedialog.askopenfilename()
 
-
-# 选择数据源
-b = tk.Button(window, text='选择电话数据源', font=(
+btn_check = tk.Button(window, text='选择电话号码数据源', font=(
     'Arial', 12), command=my_checkFile)
-b.pack()
-
+btn_check.pack()
 
 def my_start():
     if file_path == "":
-        return tk.messagebox.showwarning("警告", "请选择json数据源")
-
-    db = pymysql.connect("db4free.net", "free_auto_parts",
-                        "weijintao92", "free_auto_parts")
-    if con == False:
-        print("连接失败!")
-    # 创建一个游标对象,python里的sql语句都要通过cursor来执行
-    cursor = db.cursor()
+        return tk.messagebox.showwarning("警告", "请选择数据源！")
+    
     try:
-        # 读取json文件内容,返回字典格式，并加入my_transfer库中
-        with open(file_path, 'r', encoding="utf-8")as fp:
-
-            cursor.execute(my_sql)  # 执行sql语句
-        cursor.execute("select count(*) from transfer.dbo.g_ajz")
-        print('g_ajz原始数据行数：'+str(cursor.fetchall()))
-        # 执行数据筛选的存储过程
-        cursor.execute(f"exec transfer.dbo.insert_my_anjian_tb")
-        db.commit()
-        cursor.execute("select count(*) from transfer.dbo.g_ajz")
-        print('g_ajz当前数据行数：'+str(cursor.fetchall()))
-        tk.messagebox.showwarning("提示", "完成！")
-    except UnicodeDecodeError:
-        tk.messagebox.showwarning("警告", "文本编码格式需为utf-8")
+        #开始操作数据库
+        db = pymysql.connect("db4free.net", "free_auto_parts",
+                            "weijintao92", "free_auto_parts")
+        if db == False:
+            print("连接失败!")
+        # 创建一个游标对象,python里的sql语句都要通过cursor来执行
+        cursor = db.cursor()
+        resuolts = read_xlrd(file_path)
+        for target_list in resuolts:
+            sql_search = "select count(*) from costomer_list_new where cellphone = '%s'"%(target_list[0],)
+            cursor.execute(sql_search)
+            if(cursor.fetchall()[0][0] == 0):
+                sql_insert ="insert into costomer_list_new values('','%s')"%(target_list[0],)
+                cursor.execute(sql_insert)
+                db.commit()
+                print('加入：'+str(target_list[0]))
+            else:
+                print('重复：'+str(target_list[0]))
+    except:
+        tk.messagebox.showwarning("警告", "插入数据时出错了！")
     finally:
-        # 关闭数据库链接
         db.close()
-
-
-# 开始工作
+# 开始导入数据
 b_start = tk.Button(window, text='开始上传', font=(
     'Arial', 12), command=my_start)
 b_start.pack()
 
-# 第5步，主窗口循环显示
-window.mainloop()
+
+# 获取excel中的数据
+def read_xlrd(excelFile):
+    data = xlrd.open_workbook(excelFile)
+    table = data.sheet_by_index(0)
+    dataFile = []
+    for rowNum in range(table.nrows):
+        # if 去掉表头
+        if rowNum > 0:
+            dataFile.append(table.row_values(rowNum))
+    return dataFile
+
+
+if __name__ == '__main__':
+    # 主窗口循环显示
+    window.mainloop()

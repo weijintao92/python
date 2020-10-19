@@ -3,6 +3,8 @@ import requests
 from bs4 import BeautifulSoup
 import re
 import json
+import time
+import datetime
 
 # pat = re.compile("abc")
 # m= pat.search("abcd")
@@ -82,20 +84,27 @@ while my_bool == 'true':
                 list_temp.append({'number': item2.get_text(
                 ), 'number_url': 'https://www.baidu.com'+item2.get('href')})
     if len(list_temp) >= 9:
+        # pop() 函数用于移除列表中的一个元素（默认最后一个元素），并且返回该元素的值。
         list_pop = list_temp.pop()
+        if list_pop['number'] != "下一页 >":
+            my_bool = 'false'
+            list_temp.append(list_pop)
         list_data = list_data+list_temp
         page_url = list_pop['number_url']
         list_temp.clear()
-        print('正在爬取。。。')
-    else:
-        list_pop = list_temp.pop()
-        list_data = list_data+list_temp
-        my_bool = 'false'
+        print(datetime.datetime.now())
+        time.sleep(0.1)
+    # else:
+    #     # pop() 函数用于移除列表中的一个元素（默认最后一个元素），并且返回该元素的值。
+    #     list_pop = list_temp.pop()
+    #     list_data = list_data+list_temp
+    #     my_bool = 'false'
 
 for target_list in list_data:
     print(target_list['number'])
     
 
+# if __name__ == "__main__":
 
 
 

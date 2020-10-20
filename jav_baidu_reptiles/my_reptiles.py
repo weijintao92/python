@@ -35,7 +35,7 @@ import datetime
 #     for chunk in r.iter_content(chunk_size=1024):
 #         fd.write(chunk)
 
-#传入搜索关机字
+# 根据关键字搜索
 def get_baidu_wd(my_wd):
     # 构建查询条件
     my_params = {'wd': my_wd}
@@ -44,11 +44,15 @@ def get_baidu_wd(my_wd):
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.9 Safari/537.36',
         'Accept': '*/*'
     }
+    proxies = {
+        "http": "http://10.10.1.10:3128",   # http  型的
+        "https": "http://10.10.1.10:1080"   # https 型的
+    }
     resoult = requests.get('https://www.baidu.com/s?ie=UTF-8',
-                    params=my_params, headers=my_headers)
+                           params=my_params, headers=my_headers,proxies=proxies)
     return resoult.text
 
-#传入url
+# 根据url搜索
 def get_baidu_url(my_url):
     # 定制请求头
     my_headers = {
@@ -57,7 +61,6 @@ def get_baidu_url(my_url):
     }
     resoult = requests.get(my_url, headers=my_headers)
     return resoult.text
-
 
 
 # my_file = open(r".\baidu.html", 'rb')
@@ -102,12 +105,9 @@ while my_bool == 'true':
 
 for target_list in list_data:
     print(target_list['number'])
-    
+
 
 # if __name__ == "__main__":
-
-
-
 
 
 # for item in my_soup.find_all('div', class_="page-inner"):

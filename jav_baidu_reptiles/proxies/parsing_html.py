@@ -6,8 +6,10 @@
 # @Author  : 圈圈烃
 # @File    : parsing_html
 # @Description: 解析ip代理网站中免费的ip位置并提取, 目前有以下网站：
-# 1. 无忧代理  : http://www.data5u.com/
+
 # 2. 快代理   : https://www.kuaidaili.com/
+
+
 # 3. 小舒代理  : http://www.xsdaili.com/
 # 4. 西刺代理  : http://www.xicidaili.com/
 # 5. 89免费代理: http://www.89ip.cn/
@@ -16,6 +18,9 @@
 from bs4 import BeautifulSoup
 import requests
 import re
+# import time
+
+# today = time.strftime('%Y_%m_%d_%H_%M_%S') 
 
 def get_html(url, open_proxy=False, ip_proxies=None):
     """
@@ -60,7 +65,7 @@ def save_ip(data, save_path):
         print("总共获取 " + str(len(data)) + " 条数据")
         with open(save_path, "a") as f:
             for i in range(len(data)):
-                f.write(data[i])
+                f.write(data[i]+"\n")
             f.close()
             print("文件保存成功")
     except Exception as e:
@@ -68,7 +73,7 @@ def save_ip(data, save_path):
         print(e)
 
 
-def get_kuaidaili_free_ip(ip_proxies, save_path, open_proxy):
+def get_kuaidaili_free_ip(ip_proxies, open_proxy):
     """
     获取快代理的免费ip
     :param ip_proxies: 要使用的代理ip（这里是用代理ip去爬代理ip）
@@ -76,6 +81,7 @@ def get_kuaidaili_free_ip(ip_proxies, save_path, open_proxy):
     :param open_proxy: 是否开启代理，默认为False
     :return:
     """
+    print("获取快代理的免费ip!")
     ip_list_sum = []    # 代理ip列表
     for i in range(10):  # 获取页数
         res_text = get_html("https://www.kuaidaili.com/ops/proxylist/" + str(i+1) + "/", open_proxy=open_proxy,
@@ -84,28 +90,24 @@ def get_kuaidaili_free_ip(ip_proxies, save_path, open_proxy):
         soup = BeautifulSoup(res_text, "html.parser")
         tags = soup.find_all("div", id="freelist")
         for tag in tags:
-            ip_list = []
             sps = tag.find_all("td")
             for sp in sps:
                 my_text = sp.get_text()
-                if  my_text.isdigit() or my_text.find('.') != -1 :
-                    ip_info = sp.get_text()
-                    ip_list.append(ip_info)         
-            for j in range(10):      # 每页100条数据
-                ip_info_format = ""
-                for k in range(8):   # 每条6个内容
-                    if k == 7:
-                        ip_info_format += str(ip_list[(j * 8 + k)]) + "\n"
-                    else:
-                        ip_info_format += str(ip_list[(j * 8 + k)]) + "___"
-                ip_list_sum.append(ip_info_format)
-    save_ip(ip_list_sum, save_path)
+                # if  my_text.isdigit() or my_text.find('.') != -1 :
+                if  my_text.find('.') != -1 :
+                    ip_info = my_text+":"
+                elif my_text.isdigit():#isdigit() 方法检测字符串是否只由数字组成。
+                    ip_info += my_text
+                    ip_list_sum.append(ip_info)  
+    ip_pools_path = "proxies\ip_proxy\kuaidaili_ip_pools.txt" 
+    save_ip(ip_list_sum, ip_pools_path)
 
+
+# if __name__ == "__main__":
+#    get_kuaidaili_free_ip('',False)
     
 
-if __name__ == "__main__":
-    print(1)
-    get_kuaidaili_free_ip('','D:\github\python\jav_baidu_reptiles\ss.txt',False)
+
 
 
 

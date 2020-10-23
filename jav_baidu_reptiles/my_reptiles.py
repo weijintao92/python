@@ -8,6 +8,8 @@ import datetime
 import threading  # 多线程
 import os  # 文件操作
 import proxies.parsing_html as parsing_html
+from fake_useragent import UserAgent #爬虫请求头伪装
+
 # import parse  # 用于计算时间差
 # import atexit #脚本退出时执行的函数
   
@@ -59,20 +61,28 @@ begin_page_number = 0  #代理IP源开始爬取页码
 def get_baidu_wd(my_wd,proxies_ip):
     # 构建查询条件
     my_params = {'wd': my_wd}
-    # 定制请求头
-    my_headers = {
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.9 Safari/537.36',
-        'Accept': '*/*'
-    }  
+    
     proxies = {
         "http": "http://"+proxies_ip,   # http  型的
         "https": "http://"+proxies_ip   # https 型的
     }
 
     try:
+        ua = UserAgent() #爬虫请求头伪装
+        # 目前会抛出ConnectionError错误，目前的解决方案是捕获并跳过此异常，继续任务
+        # 未解决定制请求头的问题，目前思考的是完全模拟请求头里的所有参数（未验证此方法的可行性）
+        # 未解决 多线程日志输入换行的问题
+        # 定制请求头
+        my_headers = {
+            "User-Agent":ua.random,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2",
+            "Accept-Encoding": "gzip, deflate",
+            "Connection": "close",
+        }  
         r = requests.get('https://www.baidu.com/s?ie=UTF-8',
-                           params=my_params, headers=my_headers,proxies = proxies,timeout=2)
-    except (requests.exceptions.ConnectTimeout,requests.exceptions.ProxyError):
+                           params=my_params, headers=my_headers,proxies = proxies,timeout=2, verify=False)
+    except (requests.exceptions.ConnectTimeout,requests.exceptions.ProxyError,Exception):
         print(proxies_ip+"超时！")
     else:
         if r.status_code == 200:
@@ -88,14 +98,13 @@ def newmethod304():
     global begin_page_number
     while 1==1:
         if len(ip_list) == 0:
+            time.sleep(1)
             ip_list = parsing_html.get_kuaidaili_free_ip(begin_page_number)
         while len(ip_list) !=0:
             proxies_ip = ip_list.pop().replace('\n','') #移除列表中的一个元素（默认最后一个元素），并且返回该元素的值
             # 创建新线程
-            thread1 = myThread1(proxies_ip)
-            # 开启新线程
-            thread1.start()
-            thread1.join()
+            myThread1(proxies_ip).start()
+            
         begin_page_number+=1   
 
        
@@ -196,7 +205,6 @@ class myThread1(threading.Thread):
     def __init__(self,proxies_ip):
         threading.Thread.__init__(self)
         self.proxies_ip = proxies_ip
-
     def run(self):
         print("开始线程：" + self.proxies_ip)
         get_baidu_wd('free sxe jva',self.proxies_ip)  

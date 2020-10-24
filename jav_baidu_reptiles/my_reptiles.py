@@ -59,6 +59,9 @@ begin_page_number = 0  #代理IP源开始爬取页码
 
 # 根据关键字搜索
 def get_baidu_wd(my_wd,proxies_ip):
+
+    # 判断全局list集合中是否存在页码url
+    #提取一个url
     # 构建查询条件
     my_params = {'wd': my_wd}
     
@@ -84,9 +87,19 @@ def get_baidu_wd(my_wd,proxies_ip):
                            params=my_params, headers=my_headers,proxies = proxies,timeout=2, verify=False)
     except (requests.exceptions.ConnectTimeout,requests.exceptions.ProxyError,Exception):
         print(proxies_ip+"超时！")
+        # 如果超时，将页码url重写回list集合中
     else:
         if r.status_code == 200:
             print(proxies_ip+"成功！")
+            # 1.获取内容
+                # 1.1 剔除重复，写入临时list集合
+                # 1.2 检测延迟
+                # 1.3 写入全局 list 集合
+                # 1.4 调用装饰器，程序关闭时，将list集合中现有数据输出至excle
+            # 2.获取当前页索引
+            #2.1 写入临时list集合
+            # 2.2 判断是否到最后一页了，销毁所有线程
+
     finally:
         pass
     

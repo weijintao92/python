@@ -8,19 +8,22 @@ import datetime
 import threading  # 多线程
 import os  # 文件操作
 import proxies.parsing_html as parsing_html
-from fake_useragent import UserAgent #爬虫请求头伪装
+from fake_useragent import UserAgent  # 爬虫请求头伪装
 
 # import parse  # 用于计算时间差
 # import atexit #脚本退出时执行的函数
-  
-# ip_pools_path = "proxies\ip_proxy\kuaidaili_ip_pools.txt" 
-ip_list =[]  #代理IP集合
-begin_page_number = 0  #代理IP源开始爬取页码
+
+# ip_pools_path = "proxies\ip_proxy\kuaidaili_ip_pools.txt"
+ip_list = []  # 代理IP集合
+begin_page_number = 0  # 代理IP源开始爬取页码
+list_page_number = []  
+next_url = ''   #百度搜索，下一页url
+is_tasks = False #是否结束任务
 
 
-#脚本结束时将，内存中剩余的代理ip写会文本中
-# @atexit.register 
-# def clean_1(): 
+# 脚本结束时将，内存中剩余的代理ip写会文本中
+# @atexit.register
+# def clean_1():
 #   with open(ip_pools_path, "w") as fs:
 #         for i in range(len(ip_list)):
 #             fs.write(ip_list[i])
@@ -61,80 +64,158 @@ begin_page_number = 0  #代理IP源开始爬取页码
 def get_baidu_wd(my_wd,proxies_ip):
 
     # 判断全局list集合中是否存在页码url
-    #提取一个url
-    # 构建查询条件
-    my_params = {'wd': my_wd}
-    
+    # 提取一个url
     proxies = {
         "http": "http://"+proxies_ip,   # http  型的
         "https": "http://"+proxies_ip   # https 型的
     }
 
     try:
-        ua = UserAgent() #爬虫请求头伪装
+        ua = UserAgent()  # 爬虫请求头伪装
         # 目前会抛出ConnectionError错误，目前的解决方案是捕获并跳过此异常，继续任务
         # 未解决定制请求头的问题，目前思考的是完全模拟请求头里的所有参数（未验证此方法的可行性）
-        # 未解决 多线程日志输入换行的问题
+
         # 定制请求头
         my_headers = {
-            "User-Agent":ua.random,
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2",
-            "Accept-Encoding": "gzip, deflate",
-            "Connection": "close",
-        }  
-        r = requests.get('https://www.baidu.com/s?ie=UTF-8',
-                           params=my_params, headers=my_headers,proxies = proxies,timeout=2, verify=False)
-    except (requests.exceptions.ConnectTimeout,requests.exceptions.ProxyError,Exception):
-        print(proxies_ip+"超时！")
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Accept-Language': 'zh-CN,zh;q=0.9',
+            'Cache-Control': 'max-age=0',
+            'Connection': 'keep-alive',
+            'Cookie': 'BIDUPSID=168C7F2BA03828C13272D6BE432D667A; PSTM=1603554287; BAIDUID=168C7F2BA03828C1B773A6F551E13C63:FG=1; BD_HOME=1; delPer=0; BD_CK_SAM=1; PSINO=1; H_PS_PSSID=1447_32844_31660_32723_32230_7516_7605_32115_31708_26350; BD_UPN=12314753; H_PS_645EC=1e7a9EZYBbpG7jVqrrlfiTQfF0KcYUoJLc3nd9Fa7goUgyqHuxQAB358Afc; BA_HECTOR=al85al842ga18008ua1fp8iug0k; BDORZ=B490B5EBF6F3CD402E515D22BCDA1598',
+            'Host': 'www.baidu.com',
+            'Referer': 'https://www.baidu.com/',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'same-origin',
+            'Sec-Fetch-User': '?1',
+            'Upgrade-Insecure-Requests': '1',
+            'User-Agent': ua.chrome,
+        }
+        # 百度的url也需要组装
+        # r = requests.get('https://www.baidu.com/s?ie=UTF-8',
+        #                  params=my_params, headers=my_headers, timeout=5, proxies=proxies, verify=False)
+        global next_url
+        if next_url !='':
+            print("下一页")
+            r = requests.get(url=next_url, headers=my_headers, timeout=5)
+        else:
+            print('第一次')
+            r = requests.get(
+            'https://www.baidu.com/s?ie=UTF-8&wd=free%20sxe%20jva', headers=my_headers, timeout=5)    
+        # if len(list_page_number)!=0:
+        #     #获取最后一个页码集合
+        #     url = list_page_number.pop()
+        #     r = requests.get(url=url[0]['number_url'], headers=my_headers, timeout=5)
+        # else:
+        #     r = requests.get(
+        #     'https://www.baidu.com/s?ie=UTF-8&wd=free%20sxe%20jva', headers=my_headers, timeout=5)
+        # r.encoding = r.apparent_encoding  # 自动确定html编码,由于这里可能导致乱码，先注释掉
+        if r.status_code == 200:
+            # 如果这个代理ip有效就多用几次
+            global ip_list
+            ip_list.append(proxies_ip)
+            time.sleep(2)
+            
+            print(proxies_ip+"成功！\n")
+            # aa=r.content.decode('utf-8')
+            # ss = r.text.replace('\n','').replace('\t','').replace('\r','')
+
+            #开始解析数据
+            soup = BeautifulSoup(r.text, "html.parser")
+            # print(soup)
+            #提取页码，已放弃
+            for item in soup.find_all('div', class_="page-inner"):
+                for item2 in item.find_all('a'):
+                    if item2.get_text() != '< 上一页':
+                        list_page_number.append({'number': item2.get_text(
+                        ), 'number_url': 'https://www.baidu.com'+item2.get('href')})
+            #获取百度搜索下一页的跳转地址
+            next_soup = soup.find_all('a',class_='n')
+            if len(next_soup)==0:
+                print('结束任务！')
+                global is_tasks
+                is_tasks = True
+            next_url = 'https://www.baidu.com'+next_soup[0].get("href")
+            # 1.获取内容
+            list_page = []
+            tags_page = soup.find_all(attrs={"srcid": "1599"} )
+            for item in tags_page:
+                # print(item)
+                #获取名称
+                list_name = item.h3.find_all('a')
+                name = list_name[0].get_text()
+                href = list_name[0].get('href')
+                #获取描述
+                list_descript= item.find_all('div',class_="c-abstract c-abstract-en")
+                descript = list_descript[0].get_text()
+                #组装数据
+                list_page.append({'name':name,'href':href,'descript':descript})
+            # #是否结束任务
+            # global is_tasks
+            # is_tasks = True
+            # if list_page_number[-1]['number'] != "下一页 >":
+            #     is_tasks = True
+    # except (requests.exceptions.ConnectTimeout, requests.exceptions.ProxyError, Exception):
+    except Exception:
+        # list_page_number.append(url)
+        print(proxies_ip+"超时！\n")
         # 如果超时，将页码url重写回list集合中
     else:
-        if r.status_code == 200:
-            print(proxies_ip+"成功！")
-            # 1.获取内容
-                # 1.1 剔除重复，写入临时list集合
-                # 1.2 检测延迟
-                # 1.3 写入全局 list 集合
-                # 1.4 调用装饰器，程序关闭时，将list集合中现有数据输出至excle
-            # 2.获取当前页索引
-            #2.1 写入临时list集合
-            # 2.2 判断是否到最后一页了，销毁所有线程
-
+        pass
     finally:
         pass
-    
-    
-#
+
+
+class myThread1(threading.Thread):
+    def __init__(self, proxies_ip):
+        threading.Thread.__init__(self)
+        self.proxies_ip = proxies_ip
+    def run(self):
+        # print("开始线程：" + self.proxies_ip+"\n")
+        get_baidu_wd('free sxe jva',self.proxies_ip)
+
 
 def newmethod304():
     global ip_list
     global begin_page_number
-    while 1==1:
+    while 1 == 1:
+        #是否结束任务
+        if is_tasks:
+            break
+        #是否需要抓取代理IP
         if len(ip_list) == 0:
             time.sleep(1)
             ip_list = parsing_html.get_kuaidaili_free_ip(begin_page_number)
-        while len(ip_list) !=0:
-            proxies_ip = ip_list.pop().replace('\n','') #移除列表中的一个元素（默认最后一个元素），并且返回该元素的值
+        #开始任务
+        while len(ip_list) != 0:
+            #获取代理IP
+            proxies_ip = ip_list.pop()  # 移除列表中的一个元素（默认最后一个元素），并且返回该元素的值
             # 创建新线程
             myThread1(proxies_ip).start()
-            
-        begin_page_number+=1   
+        begin_page_number += 1
+    print("任务结束！")
 
-       
+if __name__ == '__main__':
+    newmethod304()
+    # # 123.163.115.180:9999
+    # get_baidu_wd('free sxe jva', '123.163.115.180:9999')
+
+
 # 根据url搜索
 def get_baidu_url(my_url):
-     # 定制请求头
+    # 定制请求头
     my_headers = {
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.9 Safari/537.36',
         'Accept': '*/*'
     }
-    #获取代理IP
-    list_pop = ip_list.pop() #移除列表中的一个元素（默认最后一个元素），并且返回该元素的值
+    # 获取代理IP
+    list_pop = ip_list.pop()  # 移除列表中的一个元素（默认最后一个元素），并且返回该元素的值
     proxies = {
         "http": "http://"+list_pop,   # http  型的
         "https": "http://"+list_pop   # https 型的
     }
-    resoult = requests.get(my_url, headers=my_headers,proxies=proxies)
+    resoult = requests.get(my_url, headers=my_headers, proxies=proxies)
     return resoult.text
 
 
@@ -176,7 +257,7 @@ def my_main():
             list_temp.clear()
             # print(datetime.datetime.now())
             time.sleep(0.1)
-#获取代理IP集合
+# 获取代理IP集合
 # def get_proxies_ip(ip_pools_path):
     # now_time = time.strftime("%Y-%m-%d %H:%M:%S") # 当前日期
     # a = datetime.datetime.strptime(now_time, '%Y-%m-%d %H:%M:%S')
@@ -193,18 +274,17 @@ def my_main():
     # if time_interval>4:
     #     #获取新的代理IP
     #     parsing_html.get_kuaidaili_free_ip('',ip_pools_path,False)
-    #读取ip地址，写入全局集合中ip_list
-    
-    # with open(ip_pools_path, "r") as fr:  
+    # 读取ip地址，写入全局集合中ip_list
+
+    # with open(ip_pools_path, "r") as fr:
     #     ip_list = fr.readlines()
     #     fr.close()
-    
+
         # #读取ip地址，写入全局集合中ip_list
         # with open(ip_pools_path, "r") as fr:
         #     ip_list = fr.readlines()
         #     fr.close()
-    
-    
+
     # else:
     #     # pop() 函数用于移除列表中的一个元素（默认最后一个元素），并且返回该元素的值。
     #     list_pop = list_temp.pop()
@@ -214,19 +294,6 @@ def my_main():
 # for target_list in list_data:
 #     print(target_list['number'])
 
-class myThread1(threading.Thread):
-    def __init__(self,proxies_ip):
-        threading.Thread.__init__(self)
-        self.proxies_ip = proxies_ip
-    def run(self):
-        print("开始线程：" + self.proxies_ip)
-        get_baidu_wd('free sxe jva',self.proxies_ip)  
-
-
-if __name__ == '__main__':
-    newmethod304()
-
-    
 
 # if __name__ == "__main__":
 #     # get_proxies_ip(ip_pools_path)

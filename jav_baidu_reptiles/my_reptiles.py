@@ -97,21 +97,9 @@ def get_baidu_wd(my_wd,proxies_ip):
         #                  params=my_params, headers=my_headers, timeout=5, proxies=proxies, verify=False)
         global next_url
         if next_url !='':
+            r = requests.get(url=next_url, headers=my_headers, timeout=5, proxies=proxies, verify=False)
             print("下一页")
-            r = requests.get(url=next_url, headers=my_headers, timeout=5)
-        else:
-            print('第一次')
-            r = requests.get(
-            'https://www.baidu.com/s?ie=UTF-8&wd=free%20sxe%20jva', headers=my_headers, timeout=5)    
-        # if len(list_page_number)!=0:
-        #     #获取最后一个页码集合
-        #     url = list_page_number.pop()
-        #     r = requests.get(url=url[0]['number_url'], headers=my_headers, timeout=5)
-        # else:
-        #     r = requests.get(
-        #     'https://www.baidu.com/s?ie=UTF-8&wd=free%20sxe%20jva', headers=my_headers, timeout=5)
-        # r.encoding = r.apparent_encoding  # 自动确定html编码,由于这里可能导致乱码，先注释掉
-        if r.status_code == 200:
+            if r.status_code == 200:
             # 如果这个代理ip有效就多用几次
             global ip_list
             ip_list.append(proxies_ip)
@@ -125,18 +113,26 @@ def get_baidu_wd(my_wd,proxies_ip):
             soup = BeautifulSoup(r.text, "html.parser")
             # print(soup)
             #提取页码，已放弃
-            for item in soup.find_all('div', class_="page-inner"):
-                for item2 in item.find_all('a'):
-                    if item2.get_text() != '< 上一页':
-                        list_page_number.append({'number': item2.get_text(
-                        ), 'number_url': 'https://www.baidu.com'+item2.get('href')})
-            #获取百度搜索下一页的跳转地址
-            next_soup = soup.find_all('a',class_='n')
+            # for item in soup.find_all('div', class_="page-inner"):
+            #     for item2 in item.find_all('a'):
+            #         if item2.get_text() != '< 上一页':
+            #             list_page_number.append({'number': item2.get_text(
+            #             ), 'number_url': 'https://www.baidu.com'+item2.get('href')})
+            #获取百度搜索下一页的跳转地址,并猜测此关键字可能的页码长度，组装页码集合
+            #循环遍历根据页码集合，创建线程。并将失败的页码添加到另一个集合中，再次循环遍历创建线程。至到，所有页码请求成功。
+            #判断页码集合实际长度，并修正失败页码集合的长度。
+            next_soup = soup.find_all('a',text="下一页 >")
+            #如果没有找到下一页的标签，表示页码已经到底了
             if len(next_soup)==0:
                 print('结束任务！')
                 global is_tasks
                 is_tasks = True
+                #获取当前页码
+                begin_index=next_url.find('pn=')
+                end_index = next_url.find('&oq')
+                next_url[begin_index+3:end_index]
             next_url = 'https://www.baidu.com'+next_soup[0].get("href")
+
             # 1.获取内容
             list_page = []
             tags_page = soup.find_all(attrs={"srcid": "1599"} )
@@ -151,12 +147,16 @@ def get_baidu_wd(my_wd,proxies_ip):
                 descript = list_descript[0].get_text()
                 #组装数据
                 list_page.append({'name':name,'href':href,'descript':descript})
-            # #是否结束任务
-            # global is_tasks
-            # is_tasks = True
-            # if list_page_number[-1]['number'] != "下一页 >":
-            #     is_tasks = True
-    # except (requests.exceptions.ConnectTimeout, requests.exceptions.ProxyError, Exception):
+        else:
+            r = requests.get(
+            'https://www.baidu.com/s?ie=UTF-8&wd=free%20sxe%20jva', headers=my_headers, timeout=5)    
+            print('第一次')
+            #开始解析数据
+            soup = BeautifulSoup(r.text, "html.parser")
+            next_soup = soup.find_all('a',text="下一页 >")
+            #如果没有找到下一页的标签，表示页码已经到底了
+            if len(next_soup)==0:
+                
     except Exception:
         # list_page_number.append(url)
         print(proxies_ip+"超时！\n")
@@ -199,6 +199,8 @@ def newmethod304():
 if __name__ == '__main__':
     newmethod304()
     # # 123.163.115.180:9999
+    # get_baidu_wd('free sxe jva', '123.163.115.180:9999')
+    # get_baidu_wd('free sxe jva', '123.163.115.180:9999')
     # get_baidu_wd('free sxe jva', '123.163.115.180:9999')
 
 

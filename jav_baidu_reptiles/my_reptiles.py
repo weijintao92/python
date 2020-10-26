@@ -174,6 +174,8 @@ def get_baidu_wd(my_wd,proxies_ip,next_url):
             while temp_index<=1000:
                 list_hypothesis_page.append(next_url[0:begin_index+3]+ str(temp_index) +next_url[end_index:len(next_url)])
                 temp_index=temp_index+10
+            #将列表里面将元素进行逆序排列
+            list_hypothesis_page.reverse()
             is_first_bool= True
             # 释放锁
             threadLock.release()

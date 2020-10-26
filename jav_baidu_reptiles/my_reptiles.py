@@ -19,6 +19,10 @@ begin_page_number = 0  # 代理IP源开始爬取页码
 list_page_number = []  
 next_url = ''   #百度搜索，下一页url
 is_tasks = False #是否结束任务
+#构造查询页码，假定页码有100页
+list_hypothesis_page = []
+#第一次抓取是否成功
+is_first_bool = False
 
 
 # 脚本结束时将，内存中剩余的代理ip写会文本中
@@ -61,8 +65,10 @@ is_tasks = False #是否结束任务
 #         fd.write(chunk)
 
 # 根据关键字搜索
-def get_baidu_wd(my_wd,proxies_ip):
-
+def get_baidu_wd(my_wd,proxies_ip,next_url):
+    global is_tasks
+    global list_hypothesis_page 
+    global is_first_bool
     # 判断全局list集合中是否存在页码url
     # 提取一个url
     proxies = {
@@ -95,72 +101,107 @@ def get_baidu_wd(my_wd,proxies_ip):
         # 百度的url也需要组装
         # r = requests.get('https://www.baidu.com/s?ie=UTF-8',
         #                  params=my_params, headers=my_headers, timeout=5, proxies=proxies, verify=False)
-        global next_url
+        
         if next_url !='':
             r = requests.get(url=next_url, headers=my_headers, timeout=5, proxies=proxies, verify=False)
             print("下一页")
             if r.status_code == 200:
-            # 如果这个代理ip有效就多用几次
-            global ip_list
-            ip_list.append(proxies_ip)
-            time.sleep(2)
-            
-            print(proxies_ip+"成功！\n")
-            # aa=r.content.decode('utf-8')
-            # ss = r.text.replace('\n','').replace('\t','').replace('\r','')
+                # aa=r.content.decode('utf-8')
+                # ss = r.text.replace('\n','').replace('\t','').replace('\r','')
 
-            #开始解析数据
-            soup = BeautifulSoup(r.text, "html.parser")
-            # print(soup)
-            #提取页码，已放弃
-            # for item in soup.find_all('div', class_="page-inner"):
-            #     for item2 in item.find_all('a'):
-            #         if item2.get_text() != '< 上一页':
-            #             list_page_number.append({'number': item2.get_text(
-            #             ), 'number_url': 'https://www.baidu.com'+item2.get('href')})
-            #获取百度搜索下一页的跳转地址,并猜测此关键字可能的页码长度，组装页码集合
-            #循环遍历根据页码集合，创建线程。并将失败的页码添加到另一个集合中，再次循环遍历创建线程。至到，所有页码请求成功。
-            #判断页码集合实际长度，并修正失败页码集合的长度。
-            next_soup = soup.find_all('a',text="下一页 >")
-            #如果没有找到下一页的标签，表示页码已经到底了
-            if len(next_soup)==0:
-                print('结束任务！')
-                global is_tasks
-                is_tasks = True
-                #获取当前页码
+                #开始解析数据
+                soup = BeautifulSoup(r.text, "html.parser")
+                # print(soup)
+                #提取页码，已放弃
+                # for item in soup.find_all('div', class_="page-inner"):
+                #     for item2 in item.find_all('a'):
+                #         if item2.get_text() != '< 上一页':
+                #             list_page_number.append({'number': item2.get_text(
+                #             ), 'number_url': 'https://www.baidu.com'+item2.get('href')})
+                
+                
+                #判断页码集合实际长度，并修正失败页码集合的长度。
+                next_soup = soup.find_all('a',text="下一页 >")
+                next_url_temp = 'https://www.baidu.com'+next_soup[0].get("href")
+                a_index=next_url_temp.find('pn=')
+                b_index = next_url_temp.find('&oq')
+                pn_new = next_url_temp[a_index+3:b_index]
+                #如果索引超出了上限，目标网站会返回首页,那么就结束当前线程不要向下执行了。同时，线程锁定list_hypothesis_page集合，清空集合之后的所有元素
                 begin_index=next_url.find('pn=')
                 end_index = next_url.find('&oq')
-                next_url[begin_index+3:end_index]
-            next_url = 'https://www.baidu.com'+next_soup[0].get("href")
+                pn_old = next_url_temp[begin_index+3:end_index]
+                if pn_old+10 != pn_new:
+                    print("结束当前线程！")
+                    threadLock = threading.Lock()
+                     # 获取锁，用于线程同步
+                    threadLock.acquire()
+                    while pn_old<=len(pn_old)*10:
+                        pn_old+=10
+                        list_hypothesis_page.remove(next_url[0:begin_index+3]+ pn_old +next_url[end_index:len(next_url)])
+                    # 释放锁
+                    threadLock.release()
+                    return
 
-            # 1.获取内容
-            list_page = []
-            tags_page = soup.find_all(attrs={"srcid": "1599"} )
-            for item in tags_page:
-                # print(item)
-                #获取名称
-                list_name = item.h3.find_all('a')
-                name = list_name[0].get_text()
-                href = list_name[0].get('href')
-                #获取描述
-                list_descript= item.find_all('div',class_="c-abstract c-abstract-en")
-                descript = list_descript[0].get_text()
-                #组装数据
-                list_page.append({'name':name,'href':href,'descript':descript})
+                #如果没有找到下一页的标签，表示页码已经到底了，也有可能时被目标网站检测出爬虫了
+                # if len(next_soup)==0:
+                #     print('结束任务！')
+                #     is_tasks = True
+                    #获取当前爬取失败的页码参数，然后修正失败页码集合
+                    
+                    #线程锁定list_hypothesis_page集合，不需要考虑其他线程也同样没有找到的问题。因为，当页码索引超出上限时，会返回到首页
+                    
         else:
+            #第一次抓取
             r = requests.get(
-            'https://www.baidu.com/s?ie=UTF-8&wd=free%20sxe%20jva', headers=my_headers, timeout=5)    
+            'https://www.baidu.com/s?ie=UTF-8&wd=free%20sxe%20jva',  headers=my_headers, timeout=5, proxies=proxies, verify=False)
             print('第一次')
             #开始解析数据
             soup = BeautifulSoup(r.text, "html.parser")
             next_soup = soup.find_all('a',text="下一页 >")
-            #如果没有找到下一页的标签，表示页码已经到底了
+            #如果没有找到下一页的标签，应该时被目标网站检测出是爬虫了
             if len(next_soup)==0:
-                
+                print('结束任务！')
+                is_tasks = True
+                raise Exception('任务开始时失败了！')
+            next_url = 'https://www.baidu.com'+next_soup[0].get("href")
+            #构造查询页码，假定页码有100页
+            temp_index = 10
+            begin_index=next_url.find('pn=')
+            end_index = next_url.find('&oq')
+            threadLock = threading.Lock()
+            # 获取锁，用于线程同步
+            threadLock.acquire()
+            while temp_index<=1000:
+                list_hypothesis_page.append(next_url[0:begin_index+3]+ str(temp_index) +next_url[end_index:len(next_url)])
+                temp_index=temp_index+10
+            is_first_bool= True
+            # 释放锁
+            threadLock.release()
+         # 1.获取内容
+        list_page = []
+        tags_page = soup.find_all(attrs={"srcid": "1599"} )
+        for item in tags_page:
+            # print(item)
+            #获取名称
+            list_name = item.h3.find_all('a')
+            name = list_name[0].get_text()
+            href = list_name[0].get('href')
+            #获取描述
+            list_descript= item.find_all('div',class_="c-abstract c-abstract-en")
+            descript = list_descript[0].get_text()
+            #组装数据
+            list_page.append({'name':name,'href':href,'descript':descript})
+        # 如果这个代理ip有效就多用几次
+        global ip_list
+        ip_list.append(proxies_ip)
+        time.sleep(1)
+        print(proxies_ip+"成功！\n")       
     except Exception:
         # list_page_number.append(url)
         print(proxies_ip+"超时！\n")
         # 如果超时，将页码url重写回list集合中
+        # list_hypothesis_page.append(next_url)
+        
     else:
         pass
     finally:
@@ -168,21 +209,21 @@ def get_baidu_wd(my_wd,proxies_ip):
 
 
 class myThread1(threading.Thread):
-    def __init__(self, proxies_ip):
+    def __init__(self, proxies_ip,next_url):
         threading.Thread.__init__(self)
         self.proxies_ip = proxies_ip
+        self.next_url = next_url
     def run(self):
         # print("开始线程：" + self.proxies_ip+"\n")
-        get_baidu_wd('free sxe jva',self.proxies_ip)
+        get_baidu_wd('free sxe jva',self.proxies_ip,self.next_url)
+        
 
 
 def newmethod304():
     global ip_list
     global begin_page_number
+    global list_hypothesis_page
     while 1 == 1:
-        #是否结束任务
-        if is_tasks:
-            break
         #是否需要抓取代理IP
         if len(ip_list) == 0:
             time.sleep(1)
@@ -191,17 +232,25 @@ def newmethod304():
         while len(ip_list) != 0:
             #获取代理IP
             proxies_ip = ip_list.pop()  # 移除列表中的一个元素（默认最后一个元素），并且返回该元素的值
+            #获取url,第一次爬取时不提取url
+            next_url=''
+            if is_first_bool:
+                next_url = list_hypothesis_page.pop()
             # 创建新线程
-            myThread1(proxies_ip).start()
+            myThread1(proxies_ip,next_url).start()
+
+        #结束线程，当下一页的页码集合为空且第一次抓取成功 时结束任务
+        if len(list_hypothesis_page)==0 and is_first_bool:
+            print("任务结束！")
+            break
+
         begin_page_number += 1
-    print("任务结束！")
+    
 
 if __name__ == '__main__':
     newmethod304()
     # # 123.163.115.180:9999
-    # get_baidu_wd('free sxe jva', '123.163.115.180:9999')
-    # get_baidu_wd('free sxe jva', '123.163.115.180:9999')
-    # get_baidu_wd('free sxe jva', '123.163.115.180:9999')
+    # get_baidu_wd('free sxe jva', '123.163.115.180:9999','')
 
 
 # 根据url搜索

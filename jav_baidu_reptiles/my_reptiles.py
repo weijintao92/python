@@ -72,7 +72,7 @@ def get_baidu_wd(proxies_ip,my_wd):
     global list_hypothesis_page 
     global is_first_bool
     # 组装搜索条件
-    payload = {'wd': 'free sxe jva'}
+    payload = {'wd': my_wd}
     
     proxies = {
         "http": "http://"+proxies_ip,   # http  型的
@@ -108,6 +108,8 @@ def get_baidu_wd(proxies_ip,my_wd):
         r = requests.get(
         'https://www.baidu.com/s?ie=UTF-8',params=payload,  headers=my_headers, timeout=5, proxies=proxies, verify=False)
         print('第一次'+r.url)
+        # 设置线程锁
+        threadLock = threading.Lock()
         #开始解析数据
         soup = BeautifulSoup(r.text, "html.parser")
         next_soup = soup.find_all('a',text="下一页 >")
@@ -121,18 +123,18 @@ def get_baidu_wd(proxies_ip,my_wd):
         temp_index = 10
         begin_index=next_url.find('pn=')
         end_index = next_url.find('&oq')
-        # 获取锁，用于线程同步
-        threadLock = threading.Lock()
         threadLock.acquire()
         while temp_index<=1000:
             list_hypothesis_page.append(next_url[0:begin_index+3]+ str(temp_index) +next_url[end_index:len(next_url)])
             temp_index=temp_index+10
         #将列表里面将元素进行逆序排列
         list_hypothesis_page.reverse()
+        #将url输出到文本，用于测试
+        with open('url_json.txt', "w") as fs:
+            fs.write(json.dumps(list_hypothesis_page))
+            fs.close()
         #第一次任务是否成功
         is_first_bool= False
-        # 释放锁
-        threadLock.release()
 
         # 1.获取内容
         global list_page
@@ -156,6 +158,8 @@ def get_baidu_wd(proxies_ip,my_wd):
         # 如果这个代理ip有效就多用几次
         global ip_list
         ip_list.append(proxies_ip)
+        # 释放锁
+        threadLock.release()
         time.sleep(1)
         # print(proxies_ip+"第一次成功！\n")       
     except Exception:
@@ -207,6 +211,8 @@ def get_baidu_url(proxies_ip,url):
         if url !='':
             r = requests.get(url=url, headers=my_headers, timeout=5, proxies=proxies, verify=False)
             print("下一页")
+            # 设置线程锁
+            threadLock = threading.Lock()
             if r.status_code == 200:
                 #开始解析数据
                 soup = BeautifulSoup(r.text, "html.parser")
@@ -232,8 +238,6 @@ def get_baidu_url(proxies_ip,url):
                     threadLock.release()
                     return
         # 1.获取内容
-        # 获取锁，用于线程同步
-        threadLock = threading.Lock()
         threadLock.acquire()
         global list_page
         tags_page = soup.find_all(attrs={"srcid": "1599"} )
@@ -248,10 +252,9 @@ def get_baidu_url(proxies_ip,url):
             list_descript= item.find_all('div',class_="c-abstract c-abstract-en")
             if len(list_descript)!=0:
                 descript = list_descript[0].get_text()
-            if expression:
-                pass
-            #组装数据
-            list_page.append({'name':name,'href':href,'descript':descript})
+            if len(list_descript)!=0 or len(list_name)!=0 :
+                #组装数据
+                list_page.append({'name':name,'href':href,'descript':descript})
         #输出一次内容
         with open('aaa.txt', "w") as fs:
             fs.write(json.dumps(list_page))
@@ -268,8 +271,7 @@ def get_baidu_url(proxies_ip,url):
         print(Exception)
         print(proxies_ip+"url超时！\n")
         # 如果超时，将页码url重写回list集合中
-        list_hypothesis_page.append(url)
-        
+        list_hypothesis_page.append(url)   
     else:
         pass
     finally:

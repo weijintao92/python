@@ -39,7 +39,7 @@ def get_html(url):
     except Exception as e:
         print("抓取代理IP Html页面获取失败 " + url)
         print(e)
-
+#当爬取超过200多行时，一般回爬取失败！
 def get_kuaidaili_free_ip(begin_page_number):
     """
     获取快代理的免费ip,一次只获取100个
@@ -49,28 +49,38 @@ def get_kuaidaili_free_ip(begin_page_number):
     :return:
     """
     ip_list_sum = []    # 代理ip列表
+    my_bool = True
     a = 1
-    while a<=1:  # 获取页数
-        #开始爬取
-        r = get_html("https://www.kuaidaili.com/free/inha/" + str(begin_page_number+a) + "/")
-        # print("-10"+"\\"+"n")
-        if(r == "-10\n"):
-            return print("爬取代理IP操作太频繁！")
-        # 页面解析
-        soup = BeautifulSoup(r, "html.parser")
-        tags_ip = soup.tbody.find_all(attrs={"data-title": "IP"} )
-        tags_port = soup.tbody.find_all(attrs={"data-title": "PORT"} )
-        min_index =0
-        max_index = len(tags_ip)-1
-        while min_index<=max_index:
-            ip_info = tags_ip[min_index].get_text()+":"+tags_port[min_index].get_text()
-            ip_list_sum.append(ip_info)
-            min_index+=1
-        a+=1
+    while my_bool:
+        try:
+            while a<=1:  # 获取页数
+                #开始爬取
+                r = get_html("https://www.kuaidaili.com/free/inha/" + str(begin_page_number+a) + "/")
+                # print("-10"+"\\"+"n")
+                if(r == "-10\n"):
+                    return print("爬取代理IP操作太频繁！")
+                # 页面解析
+                soup = BeautifulSoup(r, "html.parser")
+                tags_ip = soup.tbody.find_all(attrs={"data-title": "IP"} )
+                tags_port = soup.tbody.find_all(attrs={"data-title": "PORT"} )
+                min_index =0
+                max_index = len(tags_ip)-1
+                while min_index<=max_index:
+                    ip_info = tags_ip[min_index].get_text()+":"+tags_port[min_index].get_text()
+                    ip_list_sum.append(ip_info)
+                    min_index+=1
+                a+=1
+            my_bool = False
+        except Exception as e:
+            a = a-1
+            print('获取代理时出错了')
+        finally:
+            pass
+    
     return ip_list_sum
     
-if __name__ == "__main__":
-   get_kuaidaili_free_ip(1)
+# if __name__ == "__main__":
+#    get_kuaidaili_free_ip(1)
     
 
 

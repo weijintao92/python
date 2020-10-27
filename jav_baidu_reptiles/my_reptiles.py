@@ -133,7 +133,7 @@ def get_baidu_wd(proxies_ip,my_wd):
         with open('url_json.txt', "w") as fs:
             fs.write(json.dumps(list_hypothesis_page))
             fs.close()
-        #第一次任务是否成功
+        #标记第一次任务
         is_first_bool= False
 
         # 1.获取内容
@@ -268,7 +268,7 @@ def get_baidu_url(proxies_ip,url):
         # print(proxies_ip+"成功！\n")       
     except Exception :
         # list_page_number.append(url)
-        print(Exception)
+        # print(Exception)
         print(proxies_ip+"url超时！\n")
         # 如果超时，将页码url重写回list集合中
         list_hypothesis_page.append(url)   

@@ -166,6 +166,8 @@ def get_baidu_wd(proxies_ip,my_wd):
         threadLock.release()
         time.sleep(1)
         # print(proxies_ip+"第一次成功！\n")       
+    except requests.exceptions.ProxyError:
+        print('代理出错了！')
     except Exception:
         # list_page_number.append(url)
         print(proxies_ip+"第一次超时！\n")
@@ -324,9 +326,15 @@ def newmethod304():
     global is_first_bool
     while 1 == 1:
         #是否需要抓取代理IP
+        # if len(ip_list) == 0:
+        #     time.sleep(1)
+        #     ip_list = parsing_html.get_kuaidaili_free_ip(begin_page_number)
         if len(ip_list) == 0:
-            time.sleep(1)
-            ip_list = parsing_html.get_kuaidaili_free_ip(begin_page_number)
+            res = requests.get('http://api.ip.data5u.com/dynamic/get.html?order=513ba70ef0acc8958c58bf6bd8f67a3d&random=1&sep=3').content.decode()
+            # 按照\n分割获取到的IP
+            ip_list = res.split('\n')
+            ip_list.pop()
+            time.sleep(5)
         #开始任务
         while len(ip_list) != 0:
             #获取代理IP

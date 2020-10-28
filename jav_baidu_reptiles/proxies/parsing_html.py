@@ -71,13 +71,23 @@ def get_kuaidaili_free_ip(begin_page_number):
                     min_index+=1
                 a+=1
             my_bool = False
-        except Exception as e:
+        except Exception:
             a = a-1
             print('获取代理时出错了')
         finally:
             pass
     
     return ip_list_sum
+
+# 获取IP列表
+
+def wuyou():
+    # 获取IP列表
+    res = requests.get('http://api.ip.data5u.com/dynamic/get.html?order=513ba70ef0acc8958c58bf6bd8f67a3d&random=1&sep=3').content.decode()
+    # 按照\n分割获取到的IP
+    ips = res.split('\n')
+    return ips
+
     
 # if __name__ == "__main__":
 #    get_kuaidaili_free_ip(1)

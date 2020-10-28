@@ -140,14 +140,18 @@ def get_baidu_wd(proxies_ip,my_wd):
         global list_page
         tags_page = soup.find_all(attrs={"srcid": "1599"} )
         for item in tags_page:
-            # print(item)
             #获取名称
+            name=''
+            href=''
             list_name = item.h3.find_all('a')
             name = list_name[0].get_text()
             href = list_name[0].get('href')
-            #获取描述
+            #获取描述    c-abstract
+            descript=''
             list_descript= item.find_all('div',class_="c-abstract c-abstract-en")
-            descript = list_descript[0].get_text()
+            list_descript= item.find_all('div',class_="c-abstract")
+            if len(list_descript) !=0:
+                descript = list_descript[0].get_text()
             #组装数据
             list_page.append({'name':name,'href':href,'descript':descript})
         #输出一次内容
@@ -242,19 +246,20 @@ def get_baidu_url(proxies_ip,url):
         global list_page
         tags_page = soup.find_all(attrs={"srcid": "1599"} )
         for item in tags_page:
-            # print(item)
             #获取名称
+            name=''
+            href=''
             list_name = item.h3.find_all('a')
-            if len(list_name)!=0:
-                name = list_name[0].get_text()
-                href = list_name[0].get('href')
-            #获取描述
+            name = list_name[0].get_text()
+            href = list_name[0].get('href')
+            #获取描述    c-abstract
+            descript=''
             list_descript= item.find_all('div',class_="c-abstract c-abstract-en")
-            if len(list_descript)!=0:
+            list_descript= item.find_all('div',class_="c-abstract")
+            if len(list_descript) !=0:
                 descript = list_descript[0].get_text()
-            if len(list_descript)!=0 or len(list_name)!=0 :
-                #组装数据
-                list_page.append({'name':name,'href':href,'descript':descript})
+            #组装数据
+            list_page.append({'name':name,'href':href,'descript':descript})
         #输出一次内容
         with open('aaa.txt', "w") as fs:
             fs.write(json.dumps(list_page))
@@ -297,6 +302,20 @@ class url_Thread(threading.Thread):
         # print("开始线程：" + self.proxies_ip+"\n")
         get_baidu_url(self.proxies_ip,self.url)
 
+#根据获取代理IP
+class proxy_ip_Thread(threading.Thread):
+    def __init__(self,):
+        threading.Thread.__init__(self)
+    def run(self):
+        # 获取IP列表
+        res = requests.get('http://api.ip.data5u.com/dynamic/get.html?order=513ba70ef0acc8958c58bf6bd8f67a3d&random=1&sep=3').content.decode()
+        # 按照\n分割获取到的IP
+        ips = res.split('\n')
+        for proxyip  in ips:
+            if proxyip.strip()=='' :
+                    continue
+        return ips
+
 
 def newmethod304():
     global ip_list
@@ -316,6 +335,7 @@ def newmethod304():
             if is_first_bool:
                 first_Thread(proxies_ip,'free sxe jva').start()
             else:
+                print(len(list_hypothesis_page))
                 next_url = list_hypothesis_page.pop()
                 # 创建新线程
                 url_Thread(proxies_ip,next_url).start()

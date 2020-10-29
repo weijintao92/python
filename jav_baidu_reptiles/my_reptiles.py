@@ -10,6 +10,14 @@ import os  # 文件操作
 import proxies.parsing_html as parsing_html
 from fake_useragent import UserAgent  # 爬虫请求头伪装
 import json
+# 导入 random(随机数) 模块
+import random
+from urllib3.exceptions import InsecureRequestWarning
+from urllib3 import disable_warnings
+ 
+disable_warnings(InsecureRequestWarning)  # 禁止https(ssl)问题的报错
+ 
+
 
 # import parse  # 用于计算时间差
 # import atexit #脚本退出时执行的函数
@@ -218,29 +226,33 @@ def get_wd(my_wd):
         #开始解析数据
         soup = BeautifulSoup(r.text, "html.parser")
         list_next = soup.find_all('a',text="下一页 >")
-        #如果没有找到下一页的标签，应该时被目标网站检测出是爬虫了
-        if len(list_next)==0:
-            # raise Exception('url任务失败！，目标网站返回结果异常！')
-            oupput_reptile_log(url+"url任务失败！，目标网站返回结果异常！")
-            print("url任务失败！，目标网站返回结果异常！")
+        list_items = soup.find_all(attrs={"srcid": "1599"} )
+        #如果没有找到下一页的标签，会有2种情况：第一种：任务失败了，目标网站返回结果异常。第二种：已经到最后一页了
+        if len(list_next)==0 and len(list_items)==0:  
+            oupput_reptile_log(r.url+"第一次请求时任务失败！，目标网站返回结果异常！")
+            print("第一次请求时任务失败！，目标网站返回结果异常！")
             return 
-        next_url = 'https://www.baidu.com'+list_next[0].get("href")
-        #构造查询页码，假定页码有100页
-        temp_index = 10
-        begin_index=next_url.find('pn=')
-        end_index = next_url.find('&oq')
+        #判断是否已经到最后一页了
+        if len(list_next)>0:
+            #构造url集合，假定页码有100页
+            next_url = 'https://www.baidu.com'+list_next[0].get("href")
+            temp_index = 10
+            begin_index=next_url.find('pn=')
+            end_index = next_url.find('&oq')
 
-        while temp_index<=1000:
-            list_hypothesis_page.append(next_url[0:begin_index+3]+ str(temp_index) +next_url[end_index:len(next_url)])
-            temp_index=temp_index+10
-        #将列表里面将元素进行逆序排列
-        list_hypothesis_page.reverse()
-        #将url集合输出到文本
-        with open('url_json.txt', "w") as fs:
-            fs.write(json.dumps(list_hypothesis_page))
-            fs.close()
-        #标记第一次任务
-        is_first_bool= False
+            while temp_index<=1000:
+                list_hypothesis_page.append(next_url[0:begin_index+3]+ str(temp_index) +next_url[end_index:len(next_url)])
+                temp_index=temp_index+10
+            #将列表里面将元素进行逆序排列
+            list_hypothesis_page.reverse()
+            #将url集合输出到文本
+            with open('url_json.txt', "w") as fs:
+                fs.write(json.dumps(list_hypothesis_page))
+                fs.close()
+            #标记第一次任务
+            is_first_bool= False
+            print('构造url集合，假定页码有100页!任务成功！')
+            time.sleep(3)
 
         # 获取内容
         global list_page
@@ -419,38 +431,43 @@ def get_url(url):
             'Upgrade-Insecure-Requests': '1',
             'User-Agent': ua.chrome,
         }
-        # 百度的url也需要组装
-        # r = requests.get('https://www.baidu.com/s?ie=UTF-8',
-        #                  params=my_params, headers=my_headers, timeout=5, proxies=proxies, verify=False)
         
         if url !='':
             r = requests.get(url=url, headers=my_headers,timeout=5, verify=False)
 
-            print("下一页")
+            print("url请求成功！")
 
             if r.status_code == 200:
                 #开始解析数据
                 soup = BeautifulSoup(r.text, "html.parser")
-                #判断页码集合实际长度，并修正失败页码集合的长度。
                 list_next = soup.find_all('a',text="下一页 >")
-                if len(list_next)==0:
+                list_items = soup.find_all(attrs={"srcid": "1599"} )
+                #如果没有找到下一页的标签，回有2种情况：第一种：任务失败了，目标网站返回结果异常。第二种：已经到最后一页了
+                if len(list_next)==0 and len(list_items)==0:
+                    list_hypothesis_page.append(url)   
                     oupput_reptile_log(url+"url任务失败！，目标网站返回结果异常！")
                     print("url任务失败！，目标网站返回结果异常！")
                     return 
-                next_url_temp = 'https://www.baidu.com'+list_next[0].get("href")
-                a_index=next_url_temp.find('pn=')
-                b_index = next_url_temp.find('&oq')
-                pn_new = int(next_url_temp[a_index+3:b_index])
-                #如果索引超出了上限，目标网站会返回首页,那么就结束当前线程不要向下执行了。同时，线程锁定list_hypothesis_page集合，清空集合之后的所有元素
-                begin_index=url.find('pn=')
-                end_index = url.find('&oq')
-                pn_old = int(url[begin_index+3:end_index])
-                if pn_old+10 != pn_new:
-                    print("修正url集合！")
-                    while pn_old<=len(list_hypothesis_page)*10:
-                        pn_old+=10
-                        list_hypothesis_page.remove(url[0:begin_index+3]+ pn_old +url[end_index:len(url)])
-                    return
+                #已经到最后一页了
+                if len(list_next)==0:
+                    #清空模拟的url集合，结束任务
+                    list_hypothesis_page.clear()
+                    print('已经到最后一页了，任务即将结束！')
+                    time.sleep(3)
+                # next_url_temp = 'https://www.baidu.com'+list_next[0].get("href")
+                # a_index=next_url_temp.find('pn=')
+                # b_index = next_url_temp.find('&oq')
+                # pn_new = int(next_url_temp[a_index+3:b_index])
+                # #如果索引超出了上限，目标网站会返回首页,那么就结束当前线程不要向下执行了。同时，线程锁定list_hypothesis_page集合，清空集合之后的所有元素
+                # begin_index=url.find('pn=')
+                # end_index = url.find('&oq')
+                # pn_old = int(url[begin_index+3:end_index])
+                # if pn_old+10 != pn_new:
+                #     print("修正url集合！")
+                #     while pn_old<=len(list_hypothesis_page)*10:
+                #         pn_old+=10
+                #         list_hypothesis_page.remove(url[0:begin_index+3]+ pn_old +url[end_index:len(url)])
+                #     return
         # 1.获取内容
         global list_page
         tags_page = soup.find_all(attrs={"srcid": "1599"} )
@@ -475,6 +492,7 @@ def get_url(url):
             fs.close()
              
     except Exception :
+        print('url出错了')
         # 如果超时，将页码url重写回list集合中
         list_hypothesis_page.append(url)   
     else:
@@ -482,6 +500,12 @@ def get_url(url):
     finally:
         pass
 
+#验证链接可用性，无法响应的直接干掉
+def funcname(parameter_list):
+    """
+    docstring
+    """
+    pass
 
 #第一次开始工作时的线程
 class first_Thread(threading.Thread):
@@ -543,12 +567,12 @@ def main_reptiles():
         if is_first_bool:
             get_wd('free sxe jva')
         else:
-            print(len(list_hypothesis_page))
             next_url = list_hypothesis_page.pop()
+            print('url集合剩余数：'+str(len(list_hypothesis_page))+'  '+next_url)
             # 创建新线程
             get_url(next_url)
-        
-        time.sleep(5)
+        #随机休眠3-9秒
+        time.sleep(random.randint(3,9))
     
 
 if __name__ == '__main__':

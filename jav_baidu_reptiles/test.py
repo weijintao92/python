@@ -17,7 +17,8 @@ with open('88.html', "rb") as fs:
     my_html = fs.read()
     fs.close()
 soup = BeautifulSoup(my_html, "html.parser")
-tags_page = soup.find_all('a',text="下一页 >")
+tags_page = soup.find_all('title')
+dd= tags_page.get_text()
 next_url_temp = 'https://www.baidu.com'+list_next[0].get("href")
 list_page = []
 list_name =[]

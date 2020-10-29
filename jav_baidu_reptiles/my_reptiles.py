@@ -501,11 +501,14 @@ def get_url(url):
         pass
 
 #验证链接可用性，无法响应的直接干掉
-def funcname(parameter_list):
+def check_url(parameter_list):
     """
-    docstring
+    验证url可用性
     """
-    pass
+    #
+    with open('88.html', "r") as fs:
+        json_url = fs.read()
+        fs.close()
 
 #第一次开始工作时的线程
 class first_Thread(threading.Thread):

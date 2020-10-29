@@ -67,8 +67,8 @@ list_page = []
 #     for chunk in r.iter_content(chunk_size=1024):
 #         fd.write(chunk)
 
-# 根据关键字搜索
-def get_baidu_wd(proxies_ip,my_wd):
+# 根据关键字搜索，启用代理
+def get_proxies_wd(proxies_ip,my_wd):
     global list_hypothesis_page 
     global is_first_bool
     # 组装搜索条件
@@ -178,10 +178,107 @@ def get_baidu_wd(proxies_ip,my_wd):
     finally:
         pass
 
+# 根据关键字搜索，没有启用代理
+def get_wd(my_wd):
+    global list_hypothesis_page 
+    global is_first_bool
+    # 组装搜索条件
+    payload = {'wd': my_wd}
 
+    try:
+        ua = UserAgent()  # 爬虫请求头伪装
+        # 目前会抛出ConnectionError错误，目前的解决方案是捕获并跳过此异常，继续任务
+        # 未解决定制请求头的问题，目前思考的是完全模拟请求头里的所有参数（未验证此方法的可行性）
+
+        # 定制请求头
+        my_headers = {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Accept-Language': 'zh-CN,zh;q=0.9',
+            'Cache-Control': 'max-age=0',
+            'Connection': 'keep-alive',
+            'Cookie': 'BIDUPSID=168C7F2BA03828C13272D6BE432D667A; PSTM=1603554287; BAIDUID=168C7F2BA03828C1B773A6F551E13C63:FG=1; BD_HOME=1; delPer=0; BD_CK_SAM=1; PSINO=1; H_PS_PSSID=1447_32844_31660_32723_32230_7516_7605_32115_31708_26350; BD_UPN=12314753; H_PS_645EC=1e7a9EZYBbpG7jVqrrlfiTQfF0KcYUoJLc3nd9Fa7goUgyqHuxQAB358Afc; BA_HECTOR=al85al842ga18008ua1fp8iug0k; BDORZ=B490B5EBF6F3CD402E515D22BCDA1598',
+            'Host': 'www.baidu.com',
+            'Referer': 'https://www.baidu.com/',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'same-origin',
+            'Sec-Fetch-User': '?1',
+            'Upgrade-Insecure-Requests': '1',
+            'User-Agent': ua.chrome,
+        }
+        # 百度的url也需要组装
+        # r = requests.get('https://www.baidu.com/s?ie=UTF-8',
+        #                  params=my_params, headers=my_headers, timeout=5, proxies=proxies, verify=False)
+        #第一次抓取
+        r = requests.get(
+        'https://www.baidu.com/s?ie=UTF-8',params=payload, headers=my_headers, timeout=5, verify=False)
+
+        print('第一次'+r.url)
+        #开始解析数据
+        soup = BeautifulSoup(r.text, "html.parser")
+        list_next = soup.find_all('a',text="下一页 >")
+        #如果没有找到下一页的标签，应该时被目标网站检测出是爬虫了
+        if len(list_next)==0:
+            # raise Exception('url任务失败！，目标网站返回结果异常！')
+            oupput_reptile_log(url+"url任务失败！，目标网站返回结果异常！")
+            print("url任务失败！，目标网站返回结果异常！")
+            return 
+        next_url = 'https://www.baidu.com'+list_next[0].get("href")
+        #构造查询页码，假定页码有100页
+        temp_index = 10
+        begin_index=next_url.find('pn=')
+        end_index = next_url.find('&oq')
+
+        while temp_index<=1000:
+            list_hypothesis_page.append(next_url[0:begin_index+3]+ str(temp_index) +next_url[end_index:len(next_url)])
+            temp_index=temp_index+10
+        #将列表里面将元素进行逆序排列
+        list_hypothesis_page.reverse()
+        #将url集合输出到文本
+        with open('url_json.txt', "w") as fs:
+            fs.write(json.dumps(list_hypothesis_page))
+            fs.close()
+        #标记第一次任务
+        is_first_bool= False
+
+        # 获取内容
+        global list_page
+        tags_page = soup.find_all(attrs={"srcid": "1599"} )
+        for item in tags_page:
+            #获取名称
+            name=''
+            href=''
+            list_name = item.h3.find_all('a')
+            name = list_name[0].get_text()
+            href = list_name[0].get('href')
+            #获取描述    c-abstract
+            descript=''
+            list_descript= item.find_all('div',class_="c-abstract c-abstract-en")
+            list_descript= item.find_all('div',class_="c-abstract")
+            if len(list_descript) !=0:
+                descript = list_descript[0].get_text()
+            #组装数据
+            list_page.append({'name':name,'href':href,'descript':descript})
+        #输出一次内容
+        with open('aaa.txt', "w") as fs:
+                fs.write(json.dumps(list_page))
+                fs.close()
+         
+    except requests.exceptions.ProxyError:
+        print('代理出错了！')
+    except Exception:
+        # list_page_number.append(url)
+        print("第一次超时！\n")
+        # 如果超时，将页码url重写回list集合中
+        # list_hypothesis_page.append(next_url)
+    else:
+        pass
+    finally:
+        pass
 
 # 根据url集合搜索
-def get_baidu_url(proxies_ip,url):
+def get_proxies_url(proxies_ip,url):
     global list_hypothesis_page 
     
     proxies = {
@@ -224,6 +321,9 @@ def get_baidu_url(proxies_ip,url):
                 soup = BeautifulSoup(r.text, "html.parser")
                 #判断页码集合实际长度，并修正失败页码集合的长度。
                 next_soup = soup.find_all('a',text="下一页 >")
+                #如果没有找到下一页的标签，应该时被目标网站检测出是爬虫了
+                if len(next_soup)==0:
+                    raise Exception('任务开始时失败了，目标网站返回结果异常！')
                 next_url_temp = 'https://www.baidu.com'+next_soup[0].get("href")
                 a_index=next_url_temp.find('pn=')
                 b_index = next_url_temp.find('&oq')
@@ -284,6 +384,105 @@ def get_baidu_url(proxies_ip,url):
     finally:
         pass
 
+#输出日志
+def oupput_reptile_log(my_text):
+    """
+    任务进行中的错误日志
+    """
+    with open('reptile_log.txt', "a+") as fs:
+        fs.write(my_text+'\n')
+        fs.close()
+
+# 根据url集合搜索
+def get_url(url):
+    global list_hypothesis_page 
+    
+    try:
+        ua = UserAgent()  # 爬虫请求头伪装
+        # 目前会抛出ConnectionError错误，目前的解决方案是捕获并跳过此异常，继续任务
+        # 未解决定制请求头的问题，目前思考的是完全模拟请求头里的所有参数（未验证此方法的可行性）
+
+        # 定制请求头
+        my_headers = {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Accept-Language': 'zh-CN,zh;q=0.9',
+            'Cache-Control': 'max-age=0',
+            'Connection': 'keep-alive',
+            'Cookie': 'BIDUPSID=168C7F2BA03828C13272D6BE432D667A; PSTM=1603554287; BAIDUID=168C7F2BA03828C1B773A6F551E13C63:FG=1; BD_HOME=1; delPer=0; BD_CK_SAM=1; PSINO=1; H_PS_PSSID=1447_32844_31660_32723_32230_7516_7605_32115_31708_26350; BD_UPN=12314753; H_PS_645EC=1e7a9EZYBbpG7jVqrrlfiTQfF0KcYUoJLc3nd9Fa7goUgyqHuxQAB358Afc; BA_HECTOR=al85al842ga18008ua1fp8iug0k; BDORZ=B490B5EBF6F3CD402E515D22BCDA1598',
+            'Host': 'www.baidu.com',
+            'Referer': 'https://www.baidu.com/',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'same-origin',
+            'Sec-Fetch-User': '?1',
+            'Upgrade-Insecure-Requests': '1',
+            'User-Agent': ua.chrome,
+        }
+        # 百度的url也需要组装
+        # r = requests.get('https://www.baidu.com/s?ie=UTF-8',
+        #                  params=my_params, headers=my_headers, timeout=5, proxies=proxies, verify=False)
+        
+        if url !='':
+            r = requests.get(url=url, headers=my_headers,timeout=5, verify=False)
+
+            print("下一页")
+
+            if r.status_code == 200:
+                #开始解析数据
+                soup = BeautifulSoup(r.text, "html.parser")
+                #判断页码集合实际长度，并修正失败页码集合的长度。
+                list_next = soup.find_all('a',text="下一页 >")
+                if len(list_next)==0:
+                    oupput_reptile_log(url+"url任务失败！，目标网站返回结果异常！")
+                    print("url任务失败！，目标网站返回结果异常！")
+                    return 
+                next_url_temp = 'https://www.baidu.com'+list_next[0].get("href")
+                a_index=next_url_temp.find('pn=')
+                b_index = next_url_temp.find('&oq')
+                pn_new = int(next_url_temp[a_index+3:b_index])
+                #如果索引超出了上限，目标网站会返回首页,那么就结束当前线程不要向下执行了。同时，线程锁定list_hypothesis_page集合，清空集合之后的所有元素
+                begin_index=url.find('pn=')
+                end_index = url.find('&oq')
+                pn_old = int(url[begin_index+3:end_index])
+                if pn_old+10 != pn_new:
+                    print("修正url集合！")
+                    while pn_old<=len(list_hypothesis_page)*10:
+                        pn_old+=10
+                        list_hypothesis_page.remove(url[0:begin_index+3]+ pn_old +url[end_index:len(url)])
+                    return
+        # 1.获取内容
+        global list_page
+        tags_page = soup.find_all(attrs={"srcid": "1599"} )
+        for item in tags_page:
+            #获取名称
+            name=''
+            href=''
+            list_name = item.h3.find_all('a')
+            name = list_name[0].get_text()
+            href = list_name[0].get('href')
+            #获取描述    c-abstract
+            descript=''
+            list_descript= item.find_all('div',class_="c-abstract c-abstract-en")
+            list_descript= item.find_all('div',class_="c-abstract")
+            if len(list_descript) !=0:
+                descript = list_descript[0].get_text()
+            #组装数据
+            list_page.append({'name':name,'href':href,'descript':descript})
+        #输出一次内容
+        with open('aaa.txt', "w") as fs:
+            fs.write(json.dumps(list_page))
+            fs.close()
+             
+    except Exception :
+        # 如果超时，将页码url重写回list集合中
+        list_hypothesis_page.append(url)   
+    else:
+        pass
+    finally:
+        pass
+
+
 #第一次开始工作时的线程
 class first_Thread(threading.Thread):
     def __init__(self, proxies_ip,wd):
@@ -292,7 +491,7 @@ class first_Thread(threading.Thread):
         self.wd = wd
     def run(self):
         # print("开始线程：" + self.proxies_ip+"\n")
-        get_baidu_wd(self.proxies_ip,self.wd)
+        get_proxies_wd(self.proxies_ip,self.wd)
 
 #根据页码url工作的线程
 class url_Thread(threading.Thread):
@@ -302,39 +501,20 @@ class url_Thread(threading.Thread):
         self.url = url
     def run(self):
         # print("开始线程：" + self.proxies_ip+"\n")
-        get_baidu_url(self.proxies_ip,self.url)
-
-#根据获取代理IP
-class proxy_ip_Thread(threading.Thread):
-    def __init__(self,):
-        threading.Thread.__init__(self)
-    def run(self):
-        # 获取IP列表
-        res = requests.get('http://api.ip.data5u.com/dynamic/get.html?order=513ba70ef0acc8958c58bf6bd8f67a3d&random=1&sep=3').content.decode()
-        # 按照\n分割获取到的IP
-        ips = res.split('\n')
-        for proxyip  in ips:
-            if proxyip.strip()=='' :
-                    continue
-        return ips
+        get_proxies_url(self.proxies_ip,self.url)
 
 
-def newmethod304():
+#使用了代理，多线程的主方法
+def main_proxies_thread():
     global ip_list
     global begin_page_number
     global list_hypothesis_page
     global is_first_bool
     while 1 == 1:
         #是否需要抓取代理IP
-        # if len(ip_list) == 0:
-        #     time.sleep(1)
-        #     ip_list = parsing_html.get_kuaidaili_free_ip(begin_page_number)
         if len(ip_list) == 0:
-            res = requests.get('http://api.ip.data5u.com/dynamic/get.html?order=513ba70ef0acc8958c58bf6bd8f67a3d&random=1&sep=3').content.decode()
-            # 按照\n分割获取到的IP
-            ip_list = res.split('\n')
-            ip_list.pop()
-            time.sleep(5)
+            time.sleep(1)
+            ip_list = parsing_html.get_kuaidaili_free_ip(begin_page_number)
         #开始任务
         while len(ip_list) != 0:
             #获取代理IP
@@ -352,10 +532,28 @@ def newmethod304():
         #     print("任务结束！")
         #     break
         begin_page_number += 1
+
+#未使用代理和多线程
+def main_reptiles():
+    global list_hypothesis_page
+    global is_first_bool
+    #开始任务
+    while len(list_hypothesis_page) > 0 or is_first_bool:
+        #第一次
+        if is_first_bool:
+            get_wd('free sxe jva')
+        else:
+            print(len(list_hypothesis_page))
+            next_url = list_hypothesis_page.pop()
+            # 创建新线程
+            get_url(next_url)
+        
+        time.sleep(5)
     
 
 if __name__ == '__main__':
-    newmethod304()
+    main_reptiles()
+    # main_proxies_thread()
     # # 123.163.115.180:9999
     # get_baidu_wd('free sxe jva', '123.163.115.180:9999','')
 

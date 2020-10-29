@@ -13,11 +13,12 @@ import json
 
 
 
-with open('sss.html', "rb") as fs:
+with open('88.html', "rb") as fs:
     my_html = fs.read()
     fs.close()
 soup = BeautifulSoup(my_html, "html.parser")
-tags_page = soup.find_all(attrs={"srcid": "1599"} )
+tags_page = soup.find_all('a',text="下一页 >")
+next_url_temp = 'https://www.baidu.com'+list_next[0].get("href")
 list_page = []
 list_name =[]
 # list_descript =[]

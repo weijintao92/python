@@ -1,15 +1,13 @@
 #!/usr/bin/python3
 import requests
 from bs4 import BeautifulSoup
-import re
+# import re #正则表达式
 import json
 import time
-import datetime
-import threading  # 多线程
-import os  # 文件操作
-import proxies.parsing_html as parsing_html
+# import datetime
+# import threading  # 多线程
+# import os  # 文件操作
 from fake_useragent import UserAgent  # 爬虫请求头伪装
-import json
 # 导入 random(随机数) 模块
 import random
 from urllib3.exceptions import InsecureRequestWarning
@@ -60,6 +58,8 @@ def check_url():
             r = requests.get(url=url, headers=my_headers,timeout=5, verify=False)
             true_url = r.url
             text = r.text
+            #输出任务进度
+
             print(len(list_url))
             if r.status_code == 200:
                 # list_true.append(list_item_url)
@@ -68,27 +68,33 @@ def check_url():
                 oupput_check_ok(list_true)
             else:
                 print('超时'+url)
+                #采集失败的url
+                list_ConnectionError.append(list_item_url)
+                #输出
+                oupput_ConnectionError(list_ConnectionError)
             
             #随机休眠3-9秒
             time.sleep(random.randint(3,9))
-        #重定向次数太多了
-        except (requests.exceptions.TooManyRedirects):
+        # #重定向次数太多了
+        # except (requests.exceptions.TooManyRedirects):
+        #     print('目标网站访问超时！')
+        #     #采集失败的url
+        #     list_ConnectionError.append(list_item_url)
+        #     #输出
+        #     oupput_ConnectionError(list_ConnectionError)
+        # #超时了
+        # except (requests.exceptions.ConnectionError,requests.exceptions.ReadTimeout):
+        #     print('目标网站访问超时！')
+        #     #采集失败的url
+        #     list_ConnectionError.append(list_item_url)
+        #     #输出
+        #     oupput_ConnectionError(list_ConnectionError)
+        except Exception:
             print('目标网站访问超时！')
             #采集失败的url
             list_ConnectionError.append(list_item_url)
             #输出
             oupput_ConnectionError(list_ConnectionError)
-        #超时了
-        except (requests.exceptions.ConnectionError,requests.exceptions.ReadTimeout):
-            print('目标网站访问超时！')
-            #采集失败的url
-            list_ConnectionError.append(list_item_url)
-            #输出
-            oupput_ConnectionError(list_ConnectionError)
-        else:
-            pass
-        finally:
-            pass
         
 
 def oupput_check_ok(my_lists = []):
@@ -99,7 +105,7 @@ def oupput_check_ok(my_lists = []):
         fs.write(json.dumps(my_lists))
         fs.close()
 
-#采集ConnectionError
+#采集所有错误
 def oupput_ConnectionError(my_lists = []):
     """
     任务进行中的错误日志

@@ -6,6 +6,10 @@ import tkinter.messagebox
 import xlrd
 import pymysql
 
+#Date:2020-11
+#Author:wjt
+#description: mysql 保存电话号码，并剔除重复。
+
 # 第1步，实例化object，建立窗口window
 window = tk.Tk()
 # 第2步，给窗口的可视化起名字

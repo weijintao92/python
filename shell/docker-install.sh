@@ -3,7 +3,7 @@
 #Author:wjt
 #Function: install docker
 #####################################################################
-
+# https://blog.csdn.net/youzhouliu/article/details/79051516
 
 #Step 1 check yum-config-manager
 echo "########################Step 1 check yum-config-manager##########################"
